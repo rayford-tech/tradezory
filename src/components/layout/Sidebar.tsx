@@ -36,6 +36,7 @@ const navItems = [
 
 const bottomItems = [
   { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Billing", href: "/settings/billing", icon: TrendingUp },
 ];
 
 export function Sidebar() {

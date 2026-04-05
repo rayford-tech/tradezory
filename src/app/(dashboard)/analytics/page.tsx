@@ -5,13 +5,31 @@ import { AnalyticsView } from "@/components/analytics/AnalyticsView";
 
 export const dynamic = "force-dynamic";
 
-export default async function AnalyticsPage() {
+interface AnalyticsPageProps {
+  searchParams: Promise<{
+    dateFrom?: string;
+    dateTo?: string;
+    accountId?: string;
+    assetClass?: string;
+    direction?: string;
+  }>;
+}
+
+export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps) {
   const session = await auth();
   const userId = session!.user!.id;
+  const sp = await searchParams;
+
+  const where: Record<string, any> = { userId };
+  if (sp.dateFrom) where.openTime = { ...where.openTime, gte: new Date(sp.dateFrom) };
+  if (sp.dateTo) where.openTime = { ...where.openTime, lte: new Date(sp.dateTo) };
+  if (sp.accountId) where.accountId = sp.accountId;
+  if (sp.assetClass) where.assetClass = sp.assetClass;
+  if (sp.direction) where.direction = sp.direction;
 
   const [trades, accounts, setupTags, mistakeTags] = await Promise.all([
     db.trade.findMany({
-      where: { userId },
+      where,
       include: {
         account: true,
         tradeTags: { include: { setupTag: true, mistakeTag: true } },
@@ -32,6 +50,13 @@ export default async function AnalyticsPage() {
       accounts={accounts}
       setupTags={setupTags}
       mistakeTags={mistakeTags}
+      filters={{
+        dateFrom: sp.dateFrom ?? "",
+        dateTo: sp.dateTo ?? "",
+        accountId: sp.accountId ?? "",
+        assetClass: sp.assetClass ?? "",
+        direction: sp.direction ?? "",
+      }}
     />
   );
 }

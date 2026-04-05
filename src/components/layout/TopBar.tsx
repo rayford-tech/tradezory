@@ -2,7 +2,8 @@
 
 import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
-import { Bell, ChevronDown, LogOut, Settings, User } from "lucide-react";
+import Link from "next/link";
+import { Bell, ChevronDown, LogOut, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function TopBar() {
@@ -23,9 +24,9 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-3">
-        <button className="relative p-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">
+        <Link href="/settings/notifications" className="relative p-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">
           <Bell className="h-4 w-4" />
-        </button>
+        </Link>
 
         <div className="relative">
           <button

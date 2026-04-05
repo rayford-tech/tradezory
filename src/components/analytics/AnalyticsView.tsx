@@ -1,19 +1,32 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatCurrency, formatRR } from "@/lib/utils";
 import type { AnalyticsResult, TradingAccount, SetupTag, MistakeTag } from "@/types";
 import { PnlChart } from "@/components/dashboard/PnlChart";
 import { WinRateDonut } from "@/components/dashboard/WinRateDonut";
 import { InstrumentBreakdown } from "@/components/dashboard/InstrumentBreakdown";
+import { SessionHeatmap } from "@/components/dashboard/SessionHeatmap";
+import { Filter, X } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, ReferenceLine
 } from "recharts";
+
+interface Filters {
+  dateFrom: string;
+  dateTo: string;
+  accountId: string;
+  assetClass: string;
+  direction: string;
+}
 
 interface AnalyticsViewProps {
   analytics: AnalyticsResult;
   accounts: TradingAccount[];
   setupTags: SetupTag[];
   mistakeTags: MistakeTag[];
+  filters: Filters;
 }
 
 function StatRow({ label, value, highlight }: { label: string; value: string; highlight?: "green" | "red" }) {
@@ -27,7 +40,10 @@ function StatRow({ label, value, highlight }: { label: string; value: string; hi
   );
 }
 
-export function AnalyticsView({ analytics, accounts, setupTags, mistakeTags }: AnalyticsViewProps) {
+export function AnalyticsView({ analytics, accounts, setupTags, mistakeTags, filters }: AnalyticsViewProps) {
+  const router = useRouter();
+  const [f, setF] = useState<Filters>(filters);
+
   const setupData = Object.values(analytics.bySetupTag).sort((a, b) => b.netPnl - a.netPnl);
   const mistakeData = analytics.mistakeFrequency.slice(0, 8);
   const dowData = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day) => ({
@@ -35,11 +51,108 @@ export function AnalyticsView({ analytics, accounts, setupTags, mistakeTags }: A
     day: day.slice(0, 3),
   }));
 
+  function applyFilters(next: Filters) {
+    const params = new URLSearchParams();
+    if (next.dateFrom) params.set("dateFrom", next.dateFrom);
+    if (next.dateTo) params.set("dateTo", next.dateTo);
+    if (next.accountId) params.set("accountId", next.accountId);
+    if (next.assetClass) params.set("assetClass", next.assetClass);
+    if (next.direction) params.set("direction", next.direction);
+    router.push(`/analytics?${params.toString()}`);
+  }
+
+  function clearFilters() {
+    const empty: Filters = { dateFrom: "", dateTo: "", accountId: "", assetClass: "", direction: "" };
+    setF(empty);
+    router.push("/analytics");
+  }
+
+  const hasFilters = f.dateFrom || f.dateTo || f.accountId || f.assetClass || f.direction;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-zinc-50">Analytics</h1>
-        <p className="text-sm text-zinc-400">{analytics.totalTrades} closed trades analyzed</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold text-zinc-50">Analytics</h1>
+          <p className="text-sm text-zinc-400">{analytics.totalTrades} closed trades analyzed</p>
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="h-3.5 w-3.5 text-zinc-500" />
+          <span className="text-xs font-medium text-zinc-400">Filter Analytics</span>
+          {hasFilters && (
+            <button onClick={clearFilters} className="ml-auto flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+              <X className="h-3 w-3" /> Clear
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] text-zinc-500 uppercase tracking-wider">From</label>
+            <input
+              type="date"
+              value={f.dateFrom}
+              onChange={(e) => setF((s) => ({ ...s, dateFrom: e.target.value }))}
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] text-zinc-500 uppercase tracking-wider">To</label>
+            <input
+              type="date"
+              value={f.dateTo}
+              onChange={(e) => setF((s) => ({ ...s, dateTo: e.target.value }))}
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] text-zinc-500 uppercase tracking-wider">Account</label>
+            <select
+              value={f.accountId}
+              onChange={(e) => setF((s) => ({ ...s, accountId: e.target.value }))}
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-300 focus:border-indigo-500 focus:outline-none"
+            >
+              <option value="">All</option>
+              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] text-zinc-500 uppercase tracking-wider">Asset Class</label>
+            <select
+              value={f.assetClass}
+              onChange={(e) => setF((s) => ({ ...s, assetClass: e.target.value }))}
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-300 focus:border-indigo-500 focus:outline-none"
+            >
+              <option value="">All</option>
+              {["FOREX","CRYPTO","STOCKS","INDICES","COMMODITIES","OTHER"].map((ac) => (
+                <option key={ac} value={ac}>{ac}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] text-zinc-500 uppercase tracking-wider">Direction</label>
+            <select
+              value={f.direction}
+              onChange={(e) => setF((s) => ({ ...s, direction: e.target.value }))}
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-300 focus:border-indigo-500 focus:outline-none"
+            >
+              <option value="">All</option>
+              <option value="BUY">Long</option>
+              <option value="SELL">Short</option>
+            </select>
+          </div>
+          <div className="flex flex-col justify-end">
+            <button
+              onClick={() => applyFilters(f)}
+              className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -161,6 +274,13 @@ export function AnalyticsView({ analytics, accounts, setupTags, mistakeTags }: A
           <h2 className="text-sm font-semibold text-zinc-200 mb-4">By Instrument</h2>
           <InstrumentBreakdown data={analytics.byInstrument} />
         </div>
+      </div>
+
+      {/* Session Heatmap */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+        <h2 className="text-sm font-semibold text-zinc-200 mb-1">Session Performance</h2>
+        <p className="text-xs text-zinc-500 mb-4">P&L breakdown by trading session</p>
+        <SessionHeatmap bySession={analytics.bySession} byDayOfWeek={analytics.byDayOfWeek} />
       </div>
 
       {/* Day of week */}

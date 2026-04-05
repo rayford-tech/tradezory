@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { User, TradingAccount, SetupTag, MistakeTag } from "@/types";
-import { Plus, Trash2, Check } from "lucide-react";
+import { Plus, Trash2, Check, Pencil, X } from "lucide-react";
 
 interface SettingsViewProps {
   user: User;
@@ -12,7 +12,7 @@ interface SettingsViewProps {
 }
 
 export function SettingsView({ user, accounts, setupTags, mistakeTags }: SettingsViewProps) {
-  const [activeTab, setActiveTab] = useState<"profile" | "accounts" | "tags" | "mt5" | "billing">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "accounts" | "tags" | "mt5">("profile");
 
   const [profileName, setProfileName] = useState(user.name ?? "");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -24,6 +24,10 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags }: Setting
   // Setup tag form
   const [newSetupTag, setNewSetupTag] = useState({ name: "", color: "#6366f1" });
   const [newMistakeTag, setNewMistakeTag] = useState({ name: "", color: "#ef4444" });
+
+  // Tag edit state
+  const [editingSetupTag, setEditingSetupTag] = useState<{ id: string; name: string; color: string } | null>(null);
+  const [editingMistakeTag, setEditingMistakeTag] = useState<{ id: string; name: string; color: string } | null>(null);
 
   async function saveProfile() {
     setSavingProfile(true);
@@ -55,12 +59,37 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags }: Setting
     window.location.reload();
   }
 
+  async function saveSetupTag() {
+    if (!editingSetupTag) return;
+    await fetch(`/api/setup-tags/${editingSetupTag.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: editingSetupTag.name, color: editingSetupTag.color }) });
+    setEditingSetupTag(null);
+    window.location.reload();
+  }
+
+  async function deleteSetupTag(id: string) {
+    if (!confirm("Delete this setup tag? It will be removed from all trades.")) return;
+    await fetch(`/api/setup-tags/${id}`, { method: "DELETE" });
+    window.location.reload();
+  }
+
+  async function saveMistakeTag() {
+    if (!editingMistakeTag) return;
+    await fetch(`/api/mistake-tags/${editingMistakeTag.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: editingMistakeTag.name, color: editingMistakeTag.color }) });
+    setEditingMistakeTag(null);
+    window.location.reload();
+  }
+
+  async function deleteMistakeTag(id: string) {
+    if (!confirm("Delete this mistake tag? It will be removed from all trades.")) return;
+    await fetch(`/api/mistake-tags/${id}`, { method: "DELETE" });
+    window.location.reload();
+  }
+
   const tabs = [
     { key: "profile", label: "Profile" },
     { key: "accounts", label: "Accounts" },
     { key: "tags", label: "Tags" },
     { key: "mt5", label: "MT5 Integration" },
-    { key: "billing", label: "Billing" },
   ] as const;
 
   return (
@@ -162,32 +191,90 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags }: Setting
       {/* Tags */}
       {activeTab === "tags" && (
         <div className="space-y-4">
+          {/* Setup Tags */}
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-3">
             <h2 className="text-sm font-semibold text-zinc-200">Setup Tags ({setupTags.length})</h2>
-            <div className="flex flex-wrap gap-2">
-              {setupTags.map((t) => (
-                <span key={t.id} className="rounded-full px-3 py-1 text-xs font-medium border" style={{ borderColor: t.color + "44", backgroundColor: t.color + "11", color: t.color }}>
-                  {t.name}
-                </span>
-              ))}
+            <div className="space-y-1.5">
+              {setupTags.map((t) =>
+                editingSetupTag?.id === t.id ? (
+                  <div key={t.id} className="flex items-center gap-2">
+                    <input
+                      value={editingSetupTag.name}
+                      onChange={(e) => setEditingSetupTag((s) => s && { ...s, name: e.target.value })}
+                      className="flex-1 rounded-lg border border-indigo-500 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:outline-none"
+                    />
+                    <input
+                      type="color"
+                      value={editingSetupTag.color}
+                      onChange={(e) => setEditingSetupTag((s) => s && { ...s, color: e.target.value })}
+                      className="h-8 w-8 rounded border border-zinc-700 bg-zinc-800 p-0.5 cursor-pointer"
+                    />
+                    <button onClick={saveSetupTag} className="rounded-lg bg-indigo-600 px-2 py-1.5 text-white hover:bg-indigo-500"><Check className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => setEditingSetupTag(null)} className="rounded-lg border border-zinc-700 px-2 py-1.5 text-zinc-400 hover:text-zinc-200"><X className="h-3.5 w-3.5" /></button>
+                  </div>
+                ) : (
+                  <div key={t.id} className="flex items-center justify-between rounded-lg border border-zinc-800 px-3 py-2 hover:border-zinc-700 transition-colors group">
+                    <span className="rounded-full px-2.5 py-0.5 text-xs font-medium" style={{ backgroundColor: t.color + "22", color: t.color }}>
+                      {t.name}
+                    </span>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => setEditingSetupTag({ id: t.id, name: t.name, color: t.color })} className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => deleteSetupTag(t.id)} className="p-1 text-zinc-500 hover:text-red-400 transition-colors">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )
+              )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-1">
               <input value={newSetupTag.name} onChange={(e) => setNewSetupTag((t) => ({ ...t, name: e.target.value }))} placeholder="New setup tag..." className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
               <input type="color" value={newSetupTag.color} onChange={(e) => setNewSetupTag((t) => ({ ...t, color: e.target.value }))} className="h-10 w-10 rounded-lg border border-zinc-700 bg-zinc-800 p-0.5 cursor-pointer" />
               <button onClick={createSetupTag} className="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500"><Plus className="h-4 w-4" /></button>
             </div>
           </div>
 
+          {/* Mistake Tags */}
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-3">
             <h2 className="text-sm font-semibold text-zinc-200">Mistake Tags ({mistakeTags.length})</h2>
-            <div className="flex flex-wrap gap-2">
-              {mistakeTags.map((t) => (
-                <span key={t.id} className="rounded-full px-3 py-1 text-xs font-medium border" style={{ borderColor: t.color + "44", backgroundColor: t.color + "11", color: t.color }}>
-                  ⚠ {t.name}
-                </span>
-              ))}
+            <div className="space-y-1.5">
+              {mistakeTags.map((t) =>
+                editingMistakeTag?.id === t.id ? (
+                  <div key={t.id} className="flex items-center gap-2">
+                    <input
+                      value={editingMistakeTag.name}
+                      onChange={(e) => setEditingMistakeTag((s) => s && { ...s, name: e.target.value })}
+                      className="flex-1 rounded-lg border border-red-500 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:outline-none"
+                    />
+                    <input
+                      type="color"
+                      value={editingMistakeTag.color}
+                      onChange={(e) => setEditingMistakeTag((s) => s && { ...s, color: e.target.value })}
+                      className="h-8 w-8 rounded border border-zinc-700 bg-zinc-800 p-0.5 cursor-pointer"
+                    />
+                    <button onClick={saveMistakeTag} className="rounded-lg bg-red-600 px-2 py-1.5 text-white hover:bg-red-500"><Check className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => setEditingMistakeTag(null)} className="rounded-lg border border-zinc-700 px-2 py-1.5 text-zinc-400 hover:text-zinc-200"><X className="h-3.5 w-3.5" /></button>
+                  </div>
+                ) : (
+                  <div key={t.id} className="flex items-center justify-between rounded-lg border border-zinc-800 px-3 py-2 hover:border-zinc-700 transition-colors group">
+                    <span className="rounded-full px-2.5 py-0.5 text-xs font-medium" style={{ backgroundColor: t.color + "22", color: t.color }}>
+                      ⚠ {t.name}
+                    </span>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => setEditingMistakeTag({ id: t.id, name: t.name, color: t.color })} className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => deleteMistakeTag(t.id)} className="p-1 text-zinc-500 hover:text-red-400 transition-colors">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )
+              )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-1">
               <input value={newMistakeTag.name} onChange={(e) => setNewMistakeTag((t) => ({ ...t, name: e.target.value }))} placeholder="New mistake tag..." className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
               <input type="color" value={newMistakeTag.color} onChange={(e) => setNewMistakeTag((t) => ({ ...t, color: e.target.value }))} className="h-10 w-10 rounded-lg border border-zinc-700 bg-zinc-800 p-0.5 cursor-pointer" />
               <button onClick={createMistakeTag} className="rounded-lg bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-500"><Plus className="h-4 w-4" /></button>
@@ -232,32 +319,6 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags }: Setting
               <p className="text-xs text-amber-400 font-medium mb-1">Alternative: MetaApi.cloud</p>
               <p className="text-xs text-zinc-400">For hands-off real-time sync without running an EA, connect via MetaApi.cloud (~$15-50/mo). Contact support for setup help.</p>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Billing */}
-      {activeTab === "billing" && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-8 text-center">
-          <span className="inline-flex items-center rounded-full bg-indigo-600/20 border border-indigo-500/30 px-4 py-1.5 text-sm font-semibold text-indigo-400 mb-4">{user.plan} Plan</span>
-          <h2 className="text-lg font-bold text-zinc-100 mb-2">Upgrade to unlock more</h2>
-          <p className="text-sm text-zinc-400 mb-6">Coming soon — Stripe integration with Starter, Pro, and Elite plans.</p>
-          <div className="grid grid-cols-3 gap-4 text-left max-w-lg mx-auto">
-            {[
-              { name: "Starter", price: "$9", features: ["Unlimited trades", "CSV import", "Basic analytics"] },
-              { name: "Pro", price: "$19", features: ["Everything in Starter", "MT5 EA integration", "Advanced analytics", "Playbooks"] },
-              { name: "Elite", price: "$39", features: ["Everything in Pro", "MetaApi sync", "AI insights (soon)", "Priority support"] },
-            ].map((plan) => (
-              <div key={plan.name} className="rounded-xl border border-zinc-700 p-4">
-                <p className="text-sm font-bold text-zinc-100">{plan.name}</p>
-                <p className="text-2xl font-bold text-indigo-400 mt-1">{plan.price}<span className="text-xs text-zinc-500">/mo</span></p>
-                <ul className="mt-3 space-y-1">
-                  {plan.features.map((f) => (
-                    <li key={f} className="text-xs text-zinc-400 flex items-center gap-1.5"><Check className="h-3 w-3 text-emerald-400 shrink-0" />{f}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
           </div>
         </div>
       )}
