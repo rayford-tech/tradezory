@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* TradeForge design tokens */
+  --color-tf-bg: #09090b;
+  --color-tf-surface: #111113;
+  --color-tf-border: #27272a;
+  --color-tf-muted: #3f3f46;
+  --color-tf-text: #fafafa;
+  --color-tf-text-muted: #a1a1aa;
+  --color-tf-accent: #6366f1;
+  --color-tf-accent-hover: #818cf8;
+  --color-tf-green: #10b981;
+  --color-tf-red: #ef4444;
+  --color-tf-yellow: #f59e0b;
+}
+
+:root {
+  --background: #09090b;
+  --foreground: #fafafa;
+}
+
+* {
+  border-color: #27272a;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Selection */
+::selection {
+  background: #6366f1/30;
+  color: #fafafa;
+}
+
+/* Table styles */
+.trade-table th {
+  @apply text-xs font-medium text-zinc-400 uppercase tracking-wider px-4 py-3;
+}
+.trade-table td {
+  @apply px-4 py-3 text-sm border-b border-zinc-800;
+}
+.trade-table tr:hover td {
+  @apply bg-zinc-800/30;
+}
+
+/* Chart overrides */
+.recharts-cartesian-axis-tick text {
+  fill: #a1a1aa;
+  font-size: 11px;
+}
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: #18181b !important;
+  border: 1px solid #27272a !important;
+  border-radius: 8px !important;
+}

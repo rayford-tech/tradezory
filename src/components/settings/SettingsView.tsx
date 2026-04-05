@@ -1,0 +1,266 @@
+"use client";
+
+import { useState } from "react";
+import type { User, TradingAccount, SetupTag, MistakeTag } from "@/types";
+import { Plus, Trash2, Check } from "lucide-react";
+
+interface SettingsViewProps {
+  user: User;
+  accounts: TradingAccount[];
+  setupTags: SetupTag[];
+  mistakeTags: MistakeTag[];
+}
+
+export function SettingsView({ user, accounts, setupTags, mistakeTags }: SettingsViewProps) {
+  const [activeTab, setActiveTab] = useState<"profile" | "accounts" | "tags" | "mt5" | "billing">("profile");
+
+  const [profileName, setProfileName] = useState(user.name ?? "");
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Account form
+  const [newAccount, setNewAccount] = useState({ name: "", broker: "", accountNumber: "", type: "LIVE", currency: "USD" });
+  const [creatingAccount, setCreatingAccount] = useState(false);
+
+  // Setup tag form
+  const [newSetupTag, setNewSetupTag] = useState({ name: "", color: "#6366f1" });
+  const [newMistakeTag, setNewMistakeTag] = useState({ name: "", color: "#ef4444" });
+
+  async function saveProfile() {
+    setSavingProfile(true);
+    await fetch("/api/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: profileName }) });
+    setSavingProfile(false);
+  }
+
+  async function createAccount() {
+    setCreatingAccount(true);
+    await fetch("/api/accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newAccount) });
+    window.location.reload();
+  }
+
+  async function deleteAccount(id: string) {
+    if (!confirm("Delete this account and all its trades?")) return;
+    await fetch(`/api/accounts/${id}`, { method: "DELETE" });
+    window.location.reload();
+  }
+
+  async function createSetupTag() {
+    if (!newSetupTag.name.trim()) return;
+    await fetch("/api/setup-tags", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newSetupTag) });
+    window.location.reload();
+  }
+
+  async function createMistakeTag() {
+    if (!newMistakeTag.name.trim()) return;
+    await fetch("/api/mistake-tags", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newMistakeTag) });
+    window.location.reload();
+  }
+
+  const tabs = [
+    { key: "profile", label: "Profile" },
+    { key: "accounts", label: "Accounts" },
+    { key: "tags", label: "Tags" },
+    { key: "mt5", label: "MT5 Integration" },
+    { key: "billing", label: "Billing" },
+  ] as const;
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-5">
+      <h1 className="text-xl font-bold text-zinc-50">Settings</h1>
+
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            className={`flex-1 rounded-lg py-2 text-xs font-medium transition-colors ${activeTab === t.key ? "bg-zinc-700 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Profile */}
+      {activeTab === "profile" && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-zinc-200">Profile</h2>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1.5">Display Name</label>
+            <input value={profileName} onChange={(e) => setProfileName(e.target.value)} className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1.5">Email</label>
+            <input value={user.email} disabled className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-500 cursor-not-allowed" />
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1.5">Plan</label>
+            <span className="inline-flex items-center rounded-full bg-indigo-600/20 border border-indigo-500/30 px-3 py-1 text-xs font-semibold text-indigo-400">{user.plan}</span>
+          </div>
+          <button onClick={saveProfile} disabled={savingProfile} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-60">
+            {savingProfile ? "Saving..." : "Save Profile"}
+          </button>
+        </div>
+      )}
+
+      {/* Accounts */}
+      {activeTab === "accounts" && (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-zinc-200">Trading Accounts</h2>
+            {accounts.map((acc) => (
+              <div key={acc.id} className="flex items-center justify-between rounded-lg border border-zinc-700 px-4 py-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-zinc-200">{acc.name}</span>
+                    {acc.isDefault && <span className="rounded-full bg-indigo-600/20 border border-indigo-500/30 px-2 py-0.5 text-[10px] text-indigo-400">Default</span>}
+                    <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-400">{acc.type}</span>
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-0.5">{acc.broker ?? "—"} · {acc.currency}</p>
+                </div>
+                <button onClick={() => deleteAccount(acc.id)} className="text-zinc-600 hover:text-red-400 transition-colors">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-zinc-200">Add Account</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { key: "name", label: "Name *", placeholder: "Exness Live" },
+                { key: "broker", label: "Broker", placeholder: "Exness" },
+                { key: "accountNumber", label: "Account #", placeholder: "12345678" },
+                { key: "currency", label: "Currency", placeholder: "USD" },
+              ].map(({ key, label, placeholder }) => (
+                <div key={key}>
+                  <label className="block text-xs text-zinc-400 mb-1">{label}</label>
+                  <input
+                    value={(newAccount as any)[key]}
+                    onChange={(e) => setNewAccount((a) => ({ ...a, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+              ))}
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">Type</label>
+                <select value={newAccount.type} onChange={(e) => setNewAccount((a) => ({ ...a, type: e.target.value }))} className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:outline-none">
+                  <option value="LIVE">Live</option>
+                  <option value="DEMO">Demo</option>
+                  <option value="BACKTEST">Backtest</option>
+                </select>
+              </div>
+            </div>
+            <button onClick={createAccount} disabled={creatingAccount || !newAccount.name} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-60">
+              Add Account
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tags */}
+      {activeTab === "tags" && (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-zinc-200">Setup Tags ({setupTags.length})</h2>
+            <div className="flex flex-wrap gap-2">
+              {setupTags.map((t) => (
+                <span key={t.id} className="rounded-full px-3 py-1 text-xs font-medium border" style={{ borderColor: t.color + "44", backgroundColor: t.color + "11", color: t.color }}>
+                  {t.name}
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input value={newSetupTag.name} onChange={(e) => setNewSetupTag((t) => ({ ...t, name: e.target.value }))} placeholder="New setup tag..." className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+              <input type="color" value={newSetupTag.color} onChange={(e) => setNewSetupTag((t) => ({ ...t, color: e.target.value }))} className="h-10 w-10 rounded-lg border border-zinc-700 bg-zinc-800 p-0.5 cursor-pointer" />
+              <button onClick={createSetupTag} className="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500"><Plus className="h-4 w-4" /></button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-zinc-200">Mistake Tags ({mistakeTags.length})</h2>
+            <div className="flex flex-wrap gap-2">
+              {mistakeTags.map((t) => (
+                <span key={t.id} className="rounded-full px-3 py-1 text-xs font-medium border" style={{ borderColor: t.color + "44", backgroundColor: t.color + "11", color: t.color }}>
+                  ⚠ {t.name}
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input value={newMistakeTag.name} onChange={(e) => setNewMistakeTag((t) => ({ ...t, name: e.target.value }))} placeholder="New mistake tag..." className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+              <input type="color" value={newMistakeTag.color} onChange={(e) => setNewMistakeTag((t) => ({ ...t, color: e.target.value }))} className="h-10 w-10 rounded-lg border border-zinc-700 bg-zinc-800 p-0.5 cursor-pointer" />
+              <button onClick={createMistakeTag} className="rounded-lg bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-500"><Plus className="h-4 w-4" /></button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MT5 Integration */}
+      {activeTab === "mt5" && (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-zinc-200">MT5 Expert Advisor Integration</h2>
+            <p className="text-sm text-zinc-400">
+              Connect your MetaTrader 5 account to automatically sync trades in real-time using a custom Expert Advisor.
+            </p>
+
+            <div className="space-y-3">
+              <div className="rounded-lg border border-zinc-700 p-4">
+                <p className="text-xs font-semibold text-zinc-300 mb-1">Step 1: Download the EA</p>
+                <p className="text-xs text-zinc-500 mb-2">Download the TradeForge Expert Advisor and place it in your MT5 Experts folder.</p>
+                <a href="/mt5-ea/TradeForge_EA.mq5" download className="inline-flex items-center gap-2 rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-zinc-100 hover:border-zinc-600 transition-colors">
+                  ↓ Download TradeForge_EA.mq5
+                </a>
+              </div>
+              <div className="rounded-lg border border-zinc-700 p-4">
+                <p className="text-xs font-semibold text-zinc-300 mb-1">Step 2: Configure the EA</p>
+                <p className="text-xs text-zinc-500 mb-2">Set these parameters in the EA input settings:</p>
+                <div className="space-y-1 font-mono text-xs">
+                  <div className="flex gap-2"><span className="text-zinc-500 w-36">WebhookURL:</span><span className="text-indigo-400">{typeof window !== "undefined" ? window.location.origin : "https://yourapp.com"}/api/mt5/webhook</span></div>
+                  <div className="flex gap-2"><span className="text-zinc-500 w-36">AccountID:</span><span className="text-amber-400">{accounts[0]?.id ?? "your-account-id"}</span></div>
+                  <div className="flex gap-2"><span className="text-zinc-500 w-36">HMACSecret:</span><span className="text-emerald-400">{"Set in your .env as MT5_WEBHOOK_SECRET"}</span></div>
+                </div>
+              </div>
+              <div className="rounded-lg border border-zinc-700 p-4">
+                <p className="text-xs font-semibold text-zinc-300 mb-1">Step 3: Attach to Chart</p>
+                <p className="text-xs text-zinc-500">Drag the EA onto any chart in MT5. Enable "Allow WebRequests" and add your TradeForge URL in Tools → Options → Expert Advisors.</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+              <p className="text-xs text-amber-400 font-medium mb-1">Alternative: MetaApi.cloud</p>
+              <p className="text-xs text-zinc-400">For hands-off real-time sync without running an EA, connect via MetaApi.cloud (~$15-50/mo). Contact support for setup help.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Billing */}
+      {activeTab === "billing" && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-8 text-center">
+          <span className="inline-flex items-center rounded-full bg-indigo-600/20 border border-indigo-500/30 px-4 py-1.5 text-sm font-semibold text-indigo-400 mb-4">{user.plan} Plan</span>
+          <h2 className="text-lg font-bold text-zinc-100 mb-2">Upgrade to unlock more</h2>
+          <p className="text-sm text-zinc-400 mb-6">Coming soon — Stripe integration with Starter, Pro, and Elite plans.</p>
+          <div className="grid grid-cols-3 gap-4 text-left max-w-lg mx-auto">
+            {[
+              { name: "Starter", price: "$9", features: ["Unlimited trades", "CSV import", "Basic analytics"] },
+              { name: "Pro", price: "$19", features: ["Everything in Starter", "MT5 EA integration", "Advanced analytics", "Playbooks"] },
+              { name: "Elite", price: "$39", features: ["Everything in Pro", "MetaApi sync", "AI insights (soon)", "Priority support"] },
+            ].map((plan) => (
+              <div key={plan.name} className="rounded-xl border border-zinc-700 p-4">
+                <p className="text-sm font-bold text-zinc-100">{plan.name}</p>
+                <p className="text-2xl font-bold text-indigo-400 mt-1">{plan.price}<span className="text-xs text-zinc-500">/mo</span></p>
+                <ul className="mt-3 space-y-1">
+                  {plan.features.map((f) => (
+                    <li key={f} className="text-xs text-zinc-400 flex items-center gap-1.5"><Check className="h-3 w-3 text-emerald-400 shrink-0" />{f}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,346 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+  ELITE
+}
+
+enum AccountType {
+  LIVE
+  DEMO
+  BACKTEST
+}
+
+enum AssetClass {
+  FOREX
+  CRYPTO
+  STOCKS
+  INDICES
+  COMMODITIES
+  OTHER
+}
+
+enum Direction {
+  BUY
+  SELL
+}
+
+enum TradeType {
+  LIVE
+  DEMO
+  BACKTEST
+}
+
+enum TradeStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum TradingSession {
+  ASIAN
+  LONDON
+  NEW_YORK
+  LONDON_NY_OVERLAP
+}
+
+enum Emotion {
+  CONFIDENT
+  ANXIOUS
+  CALM
+  FEARFUL
+  GREEDY
+  NEUTRAL
+  FRUSTRATED
+  EXCITED
+}
+
+enum NoteType {
+  PRE_MARKET
+  POST_MARKET
+  WEEKLY
+  MONTHLY
+  LESSON
+}
+
+enum ReviewType {
+  WEEKLY
+  MONTHLY
+}
+
+// ─── NextAuth required models ─────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Core User ────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String?
+  image     String?
+  plan      Plan     @default(FREE)
+  timezone  String   @default("UTC")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  tradingAccounts TradingAccount[]
+  trades          Trade[]
+  playbooks       Playbook[]
+  setupTags       SetupTag[]
+  mistakeTags     MistakeTag[]
+  notes           Note[]
+  reviews         Review[]
+}
+
+// ─── Trading Accounts ─────────────────────────────────────────────────────────
+
+model TradingAccount {
+  id            String      @id @default(cuid())
+  userId        String
+  name          String
+  broker        String?
+  accountNumber String?
+  currency      String      @default("USD")
+  balance       Decimal?    @db.Decimal(18, 2)
+  type          AccountType
+  isDefault     Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades Trade[]
+}
+
+// ─── Trades ───────────────────────────────────────────────────────────────────
+
+model Trade {
+  id        String @id @default(cuid())
+  userId    String
+  accountId String
+
+  instrument String
+  assetClass AssetClass
+
+  direction  Direction
+  entryPrice Decimal   @db.Decimal(18, 8)
+  exitPrice  Decimal?  @db.Decimal(18, 8)
+  stopLoss   Decimal?  @db.Decimal(18, 8)
+  takeProfit Decimal?  @db.Decimal(18, 8)
+
+  lotSize      Decimal? @db.Decimal(18, 4)
+  positionSize Decimal? @db.Decimal(18, 2)
+
+  riskAmount   Decimal? @db.Decimal(18, 2)
+  rewardAmount Decimal? @db.Decimal(18, 2)
+  rrRatio      Decimal? @db.Decimal(10, 4)
+
+  grossPnl   Decimal? @db.Decimal(18, 2)
+  netPnl     Decimal? @db.Decimal(18, 2)
+  commission Decimal? @db.Decimal(18, 2)
+  swap       Decimal? @db.Decimal(18, 2)
+
+  openTime       DateTime
+  closeTime      DateTime?
+  holdingMinutes Int?
+  session        TradingSession?
+
+  tradeType TradeType   @default(LIVE)
+  status    TradeStatus @default(OPEN)
+
+  emotionBefore   Emotion?
+  emotionAfter    Emotion?
+  executionScore  Int?
+  disciplineScore Int?
+  confidenceScore Int?
+
+  preTradeReasoning String? @db.Text
+  postTradeReview   String? @db.Text
+  notes             String? @db.Text
+
+  externalId     String?
+  brokerMetadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account     TradingAccount @relation(fields: [accountId], references: [id])
+  tradeTags   TradeTag[]
+  screenshots Screenshot[]
+  replayData  ReplayData?
+
+  @@index([userId, openTime])
+  @@index([userId, status])
+  @@index([userId, accountId])
+  @@index([externalId])
+}
+
+// ─── Tags ─────────────────────────────────────────────────────────────────────
+
+model SetupTag {
+  id         String  @id @default(cuid())
+  userId     String
+  name       String
+  color      String  @default("#6366f1")
+  playbookId String?
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playbook  Playbook?  @relation(fields: [playbookId], references: [id])
+  tradeTags TradeTag[]
+
+  @@unique([userId, name])
+}
+
+model MistakeTag {
+  id       String  @id @default(cuid())
+  userId   String
+  name     String
+  category String?
+  color    String  @default("#ef4444")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tradeTags TradeTag[]
+
+  @@unique([userId, name])
+}
+
+model TradeTag {
+  id           String  @id @default(cuid())
+  tradeId      String
+  setupTagId   String?
+  mistakeTagId String?
+
+  trade      Trade       @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  setupTag   SetupTag?   @relation(fields: [setupTagId], references: [id])
+  mistakeTag MistakeTag? @relation(fields: [mistakeTagId], references: [id])
+}
+
+// ─── Playbooks ────────────────────────────────────────────────────────────────
+
+model Playbook {
+  id                String   @id @default(cuid())
+  userId            String
+  name              String
+  description       String?  @db.Text
+  rules             String?  @db.Text
+  timeframes        String[]
+  entryConditions   String?  @db.Text
+  invalidConditions String?  @db.Text
+  targetRrMin       Decimal? @db.Decimal(6, 2)
+  targetRrMax       Decimal? @db.Decimal(6, 2)
+  notes             String?  @db.Text
+  screenshotUrls    String[]
+  checklist         Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  setupTags SetupTag[]
+}
+
+// ─── Screenshots & Replay ─────────────────────────────────────────────────────
+
+model Screenshot {
+  id         String    @id @default(cuid())
+  tradeId    String
+  url        String
+  fileKey    String
+  label      String?
+  capturedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+}
+
+model ReplayData {
+  id      String @id @default(cuid())
+  tradeId String @unique
+  candles Json
+  markers Json
+  comments Json
+
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+}
+
+// ─── Notes & Reviews ──────────────────────────────────────────────────────────
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  type      NoteType
+  date      DateTime
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, date])
+}
+
+model Review {
+  id           String     @id @default(cuid())
+  userId       String
+  type         ReviewType
+  periodStart  DateTime
+  periodEnd    DateTime
+  summary      String?    @db.Text
+  improvements String?    @db.Text
+  lessons      String?    @db.Text
+  goals        String?    @db.Text
+  score        Int?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
