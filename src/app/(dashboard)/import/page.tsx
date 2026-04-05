@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ImportView } from "@/components/import/ImportView";
+import { ImportPageClient } from "@/components/import/ImportPageClient";
 
 export const dynamic = "force-dynamic";
 
@@ -8,10 +8,24 @@ export default async function ImportPage() {
   const session = await auth();
   const userId = session!.user!.id;
 
-  const accounts = await db.tradingAccount.findMany({
-    where: { userId },
-    orderBy: { isDefault: "desc" },
-  });
+  const [accounts, brokerConnections] = await Promise.all([
+    db.tradingAccount.findMany({
+      where: { userId },
+      orderBy: { isDefault: "desc" },
+    }),
+    db.brokerConnection.findMany({
+      where: { userId },
+      include: { tradingAccount: { select: { id: true, name: true, type: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
-  return <ImportView accounts={accounts} />;
+  const safeConnections = brokerConnections.map(({ encryptedPassword: _, ...c }) => c);
+
+  return (
+    <ImportPageClient
+      accounts={accounts}
+      brokerConnections={safeConnections}
+    />
+  );
 }
