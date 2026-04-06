@@ -42,7 +42,7 @@ export function InstrumentBreakdown({ data }: InstrumentBreakdownProps) {
           axisLine={false}
           width={55}
         />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
         <Bar dataKey="netPnl" radius={[0, 3, 3, 0]} maxBarSize={16}>
           {items.map((entry, i) => (
             <Cell key={i} fill={entry.netPnl >= 0 ? "#10b981" : "#ef4444"} />

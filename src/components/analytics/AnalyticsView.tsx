@@ -210,7 +210,7 @@ export function AnalyticsView({ analytics, accounts, setupTags, mistakeTags, fil
           <LineChart data={analytics.equityCurve} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
             <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#71717a" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
             <YAxis tick={{ fontSize: 10, fill: "#71717a" }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v >= 1000 ? (v/1000).toFixed(1)+"k" : v}`} width={50} />
-            <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8, fontSize: 11 }} />
+            <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8, fontSize: 11 }} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
             <ReferenceLine y={0} stroke="#3f3f46" />
             <Line type="monotone" dataKey="drawdown" stroke="#ef4444" strokeWidth={1.5} dot={false} />
           </LineChart>
@@ -261,7 +261,7 @@ export function AnalyticsView({ analytics, accounts, setupTags, mistakeTags, fil
               <BarChart data={mistakeData} layout="vertical" margin={{ top: 0, right: 10, left: 80, bottom: 0 }}>
                 <XAxis type="number" hide />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#a1a1aa" }} tickLine={false} axisLine={false} width={75} />
-                <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8, fontSize: 11 }} />
+                <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8, fontSize: 11 }} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
                 <Bar dataKey="count" fill="#ef4444" radius={[0, 3, 3, 0]} maxBarSize={14} />
               </BarChart>
             </ResponsiveContainer>
@@ -290,7 +290,7 @@ export function AnalyticsView({ analytics, accounts, setupTags, mistakeTags, fil
           <BarChart data={dowData} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
             <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#a1a1aa" }} tickLine={false} axisLine={false} />
             <YAxis hide />
-            <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8, fontSize: 11 }} formatter={(v: any) => formatCurrency(v)} />
+            <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8, fontSize: 11 }} cursor={{ fill: "rgba(255,255,255,0.04)" }} formatter={(v: any) => formatCurrency(v)} />
             <ReferenceLine y={0} stroke="#3f3f46" />
             <Bar dataKey="netPnl" radius={[3, 3, 0, 0]} maxBarSize={40}>
               {dowData.map((entry, i) => (

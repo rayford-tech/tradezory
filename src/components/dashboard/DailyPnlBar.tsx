@@ -39,7 +39,7 @@ export function DailyPnlBar({ data }: DailyPnlBarProps) {
       <BarChart data={recent} margin={{ top: 5, right: 5, left: 5, bottom: 0 }} barSize={6}>
         <XAxis dataKey="date" hide />
         <YAxis hide />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
         <ReferenceLine y={0} stroke="#3f3f46" />
         <Bar dataKey="pnl" radius={[2, 2, 0, 0]}>
           {recent.map((entry, index) => (

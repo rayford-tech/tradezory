@@ -55,7 +55,7 @@ export function PnlChart({ data }: PnlChartProps) {
           tickFormatter={(v) => `$${v >= 1000 ? (v / 1000).toFixed(1) + "k" : v}`}
           width={50}
         />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#3f3f46", strokeWidth: 1 }} />
         <ReferenceLine y={0} stroke="#3f3f46" strokeDasharray="3 3" />
         <Area
           type="monotone"

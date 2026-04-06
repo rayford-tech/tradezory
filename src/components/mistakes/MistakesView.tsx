@@ -77,7 +77,7 @@ export function MistakesView({ analytics, mistakeTags }: MistakesViewProps) {
               <BarChart data={mistakeData} layout="vertical" margin={{ top: 0, right: 10, left: 90, bottom: 0 }}>
                 <XAxis type="number" tick={{ fontSize: 10, fill: "#71717a" }} tickLine={false} axisLine={false} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#a1a1aa" }} tickLine={false} axisLine={false} width={85} />
-                <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8, fontSize: 11 }} />
+                <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8, fontSize: 11 }} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
                 <Bar dataKey="count" fill="#ef4444" radius={[0, 3, 3, 0]} maxBarSize={16} />
               </BarChart>
             </ResponsiveContainer>
@@ -94,7 +94,7 @@ export function MistakesView({ analytics, mistakeTags }: MistakesViewProps) {
               <BarChart data={mistakeData} layout="vertical" margin={{ top: 0, right: 10, left: 90, bottom: 0 }}>
                 <XAxis type="number" tick={{ fontSize: 10, fill: "#71717a" }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#a1a1aa" }} tickLine={false} axisLine={false} width={85} />
-                <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8, fontSize: 11 }} formatter={(v: any) => formatCurrency(v)} />
+                <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8, fontSize: 11 }} cursor={{ fill: "rgba(255,255,255,0.04)" }} formatter={(v: any) => formatCurrency(v)} />
                 <Bar dataKey="pnlImpact" radius={[0, 3, 3, 0]} maxBarSize={16}>
                   {mistakeData.map((entry, i) => (
                     <Cell key={i} fill={entry.pnlImpact >= 0 ? "#10b981" : "#ef4444"} />
