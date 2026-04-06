@@ -47,14 +47,16 @@ export default async function DashboardPage() {
   // Build dayMap for current month only (in user's timezone)
   const nowStr = toUserDate(new Date(), userTimezone);
   const currentMonth = nowStr.slice(0, 7); // "yyyy-MM"
-  const dayMap: Record<string, { pnl: number; trades: number }> = {};
+  const dayMap: Record<string, { pnl: number; trades: number; wins: number }> = {};
   for (const t of trades) {
     if (!t.closeTime || t.status !== "CLOSED") continue;
     const day = toUserDate(t.closeTime, userTimezone);
     if (!day.startsWith(currentMonth)) continue;
-    if (!dayMap[day]) dayMap[day] = { pnl: 0, trades: 0 };
-    dayMap[day].pnl += Number((t as any).netPnl ?? 0);
+    if (!dayMap[day]) dayMap[day] = { pnl: 0, trades: 0, wins: 0 };
+    const pnl = Number((t as any).netPnl ?? 0);
+    dayMap[day].pnl += pnl;
     dayMap[day].trades++;
+    if (pnl > 0) dayMap[day].wins++;
   }
 
   const pnlHighlight =
@@ -88,6 +90,7 @@ export default async function DashboardPage() {
           subtitle={`${analytics.winCount}W · ${analytics.lossCount}L`}
           highlight={pnlHighlight}
           icon={TrendingUp}
+          href="/journal"
         />
         <KpiCard
           title="Win Rate"
@@ -95,6 +98,7 @@ export default async function DashboardPage() {
           subtitle={`${analytics.totalTrades} trades`}
           highlight={analytics.winRate >= 0.5 ? "green" : "default"}
           icon={Target}
+          href="/analytics"
         />
         <KpiCard
           title="Profit Factor"
@@ -106,12 +110,14 @@ export default async function DashboardPage() {
           subtitle={analytics.profitFactor >= 1.5 ? "Strong" : analytics.profitFactor >= 1 ? "Positive" : "Negative"}
           highlight={analytics.profitFactor >= 1.5 ? "green" : analytics.profitFactor >= 1 ? "default" : "red"}
           icon={BarChart3}
+          href="/analytics"
         />
         <KpiCard
           title="Avg RR"
           value={formatRR(analytics.avgRR)}
           subtitle={`Expectancy ${formatCurrency(analytics.expectancy)}`}
           icon={Award}
+          href="/analytics"
         />
         <KpiCard
           title="Max Drawdown"
@@ -119,18 +125,21 @@ export default async function DashboardPage() {
           subtitle={`${analytics.maxDrawdownPct.toFixed(1)}% of peak`}
           highlight={analytics.maxDrawdownPct > 20 ? "red" : "default"}
           icon={AlertTriangle}
+          href="/analytics"
         />
         <KpiCard
           title="Avg Win"
           value={formatCurrency(analytics.avgWin)}
           subtitle={`Avg Loss ${formatCurrency(analytics.avgLoss)}`}
           highlight="green"
+          href="/journal"
         />
         <KpiCard
           title="Best Setup"
           value={bestSetup?.name ?? "—"}
           subtitle={bestSetup ? formatCurrency(bestSetup.netPnl) : "No setups tagged"}
           highlight={bestSetup && bestSetup.netPnl > 0 ? "blue" : "default"}
+          href="/journal"
         />
         <KpiCard
           title="Top Mistake"
@@ -138,6 +147,7 @@ export default async function DashboardPage() {
           subtitle={worstMistake ? `${worstMistake.count}× · ${formatCurrency(worstMistake.pnlImpact)}` : "No mistakes tagged"}
           highlight={worstMistake ? "red" : "default"}
           icon={AlertTriangle}
+          href="/mistakes"
         />
       </div>
 
