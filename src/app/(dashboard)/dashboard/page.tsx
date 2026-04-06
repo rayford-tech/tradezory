@@ -7,6 +7,8 @@ import { WinRateDonut } from "@/components/dashboard/WinRateDonut";
 import { DailyPnlBar } from "@/components/dashboard/DailyPnlBar";
 import { InstrumentBreakdown } from "@/components/dashboard/InstrumentBreakdown";
 import { RecentTrades } from "@/components/dashboard/RecentTrades";
+import { DashboardCalendar } from "@/components/dashboard/DashboardCalendar";
+import { toUserDate } from "@/lib/trade-utils";
 import { formatCurrency, formatPercent, formatRR } from "@/lib/utils";
 import {
   TrendingUp,
@@ -24,20 +26,36 @@ export default async function DashboardPage() {
   const session = await auth();
   const userId = session!.user!.id;
 
-  // Last 90 days of closed trades for dashboard
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
-  const trades = await db.trade.findMany({
-    where: { userId, openTime: { gte: ninetyDaysAgo } },
-    include: {
-      account: true,
-      tradeTags: { include: { setupTag: true, mistakeTag: true } },
-      screenshots: true,
-    },
-    orderBy: { openTime: "asc" },
-  });
+  const [user, trades] = await Promise.all([
+    db.user.findUnique({ where: { id: userId }, select: { timezone: true } }),
+    db.trade.findMany({
+      where: { userId, openTime: { gte: ninetyDaysAgo } },
+      include: {
+        account: true,
+        tradeTags: { include: { setupTag: true, mistakeTag: true } },
+        screenshots: true,
+      },
+      orderBy: { openTime: "asc" },
+    }),
+  ]);
 
+  const userTimezone = user?.timezone ?? "UTC";
   const analytics = computeAnalytics(trades as any);
+
+  // Build dayMap for current month only (in user's timezone)
+  const nowStr = toUserDate(new Date(), userTimezone);
+  const currentMonth = nowStr.slice(0, 7); // "yyyy-MM"
+  const dayMap: Record<string, { pnl: number; trades: number }> = {};
+  for (const t of trades) {
+    if (!t.closeTime || t.status !== "CLOSED") continue;
+    const day = toUserDate(t.closeTime, userTimezone);
+    if (!day.startsWith(currentMonth)) continue;
+    if (!dayMap[day]) dayMap[day] = { pnl: 0, trades: 0 };
+    dayMap[day].pnl += Number((t as any).netPnl ?? 0);
+    dayMap[day].trades++;
+  }
 
   const pnlHighlight =
     analytics.totalNetPnl > 0 ? "green" : analytics.totalNetPnl < 0 ? "red" : "default";
@@ -194,36 +212,54 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Session Performance */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-        <h2 className="text-sm font-semibold text-zinc-200 mb-4">Performance by Session</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {["ASIAN", "LONDON", "NEW_YORK", "LONDON_NY_OVERLAP"].map((sess) => {
-            const s = analytics.bySession[sess];
-            const sessionLabels: Record<string, string> = {
-              ASIAN: "Asian",
-              LONDON: "London",
-              NEW_YORK: "New York",
-              LONDON_NY_OVERLAP: "London/NY",
-            };
-            return (
-              <div key={sess} className="rounded-lg border border-zinc-700 bg-zinc-800/40 p-4">
-                <p className="text-xs text-zinc-400 mb-2">{sessionLabels[sess]}</p>
-                {s ? (
-                  <>
-                    <p className={`text-lg font-bold ${s.netPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {formatCurrency(s.netPnl)}
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-1">
-                      {s.trades} trades · {Math.round(s.winRate * 100)}% WR
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-zinc-600">No trades</p>
-                )}
-              </div>
-            );
-          })}
+      {/* Monthly Calendar + Session Performance */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-200">Monthly Overview</h2>
+              <p className="text-xs text-zinc-500">Trades this month</p>
+            </div>
+            <Link
+              href="/calendar"
+              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+            >
+              Full calendar →
+            </Link>
+          </div>
+          <DashboardCalendar dayMap={dayMap} timezone={userTimezone} />
+        </div>
+
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+          <h2 className="text-sm font-semibold text-zinc-200 mb-4">Performance by Session</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {["ASIAN", "LONDON", "NEW_YORK", "LONDON_NY_OVERLAP"].map((sess) => {
+              const s = analytics.bySession[sess];
+              const sessionLabels: Record<string, string> = {
+                ASIAN: "Asian",
+                LONDON: "London",
+                NEW_YORK: "New York",
+                LONDON_NY_OVERLAP: "London/NY",
+              };
+              return (
+                <div key={sess} className="rounded-lg border border-zinc-700 bg-zinc-800/40 p-4">
+                  <p className="text-xs text-zinc-400 mb-2">{sessionLabels[sess]}</p>
+                  {s ? (
+                    <>
+                      <p className={`text-lg font-bold ${s.netPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                        {formatCurrency(s.netPnl)}
+                      </p>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        {s.trades} trades · {Math.round(s.winRate * 100)}% WR
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-zinc-600">No trades</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 

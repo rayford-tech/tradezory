@@ -15,6 +15,7 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags }: Setting
   const [activeTab, setActiveTab] = useState<"profile" | "accounts" | "tags" | "mt5">("profile");
 
   const [profileName, setProfileName] = useState(user.name ?? "");
+  const [profileTimezone, setProfileTimezone] = useState(user.timezone ?? "UTC");
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Account form
@@ -31,7 +32,7 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags }: Setting
 
   async function saveProfile() {
     setSavingProfile(true);
-    await fetch("/api/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: profileName }) });
+    await fetch("/api/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: profileName, timezone: profileTimezone }) });
     setSavingProfile(false);
   }
 
@@ -120,6 +121,32 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags }: Setting
           <div>
             <label className="block text-xs text-zinc-400 mb-1.5">Email</label>
             <input value={user.email} disabled className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-500 cursor-not-allowed" />
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1.5">Timezone</label>
+            <select
+              value={profileTimezone}
+              onChange={(e) => setProfileTimezone(e.target.value)}
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+            >
+              <option value="UTC">UTC</option>
+              <option value="America/New_York">Eastern (ET) — New York</option>
+              <option value="America/Chicago">Central (CT/CST) — Chicago</option>
+              <option value="America/Denver">Mountain (MT) — Denver</option>
+              <option value="America/Los_Angeles">Pacific (PT) — Los Angeles</option>
+              <option value="America/Sao_Paulo">Brazil (BRT) — São Paulo</option>
+              <option value="Europe/London">London (GMT/BST)</option>
+              <option value="Europe/Berlin">Central Europe (CET) — Frankfurt/Berlin</option>
+              <option value="Europe/Moscow">Moscow (MSK)</option>
+              <option value="Asia/Dubai">Dubai (GST)</option>
+              <option value="Asia/Kolkata">India (IST) — Mumbai</option>
+              <option value="Asia/Singapore">Singapore (SGT)</option>
+              <option value="Asia/Tokyo">Japan (JST) — Tokyo</option>
+              <option value="Asia/Hong_Kong">Hong Kong (HKT)</option>
+              <option value="Australia/Sydney">Sydney (AEDT/AEST)</option>
+              <option value="Pacific/Auckland">New Zealand (NZDT/NZST)</option>
+            </select>
+            <p className="mt-1 text-[10px] text-zinc-600">Used to correctly assign trades to your local trading day.</p>
           </div>
           <div>
             <label className="block text-xs text-zinc-400 mb-1.5">Plan</label>

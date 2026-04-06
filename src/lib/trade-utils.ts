@@ -20,3 +20,29 @@ export function inferSession(openTime: string): TradingSession {
   if (hour >= 13 && hour < 16) return "LONDON_NY_OVERLAP";
   return "NEW_YORK";
 }
+
+/**
+ * Convert a UTC Date to a "yyyy-MM-dd" string in the user's IANA timezone.
+ * Uses Intl.DateTimeFormat — no additional dependencies required.
+ *
+ * Example: a trade closed at 00:30 UTC Tuesday becomes "Monday"
+ * when the user's timezone is "America/Chicago" (CST = UTC-6).
+ *
+ * Falls back to UTC if the timezone string is invalid.
+ */
+export function toUserDate(date: Date, timezone: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+    const year  = parts.find((p) => p.type === "year")!.value;
+    const month = parts.find((p) => p.type === "month")!.value;
+    const day   = parts.find((p) => p.type === "day")!.value;
+    return `${year}-${month}-${day}`;
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
+}
