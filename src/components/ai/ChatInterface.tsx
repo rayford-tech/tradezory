@@ -63,7 +63,7 @@ export function ChatInterface() {
     } catch {
       setMessages((prev) => [
         ...prev.slice(0, -1),
-        { role: "assistant", content: "Sorry, something went wrong. Make sure ANTHROPIC_API_KEY is configured." },
+        { role: "assistant", content: "Sorry, something went wrong. Make sure a valid GEMINI_API_KEY (free at aistudio.google.com) or ANTHROPIC_API_KEY is set in your environment variables." },
       ]);
     } finally {
       setStreaming(false);
@@ -86,7 +86,7 @@ export function ChatInterface() {
           </div>
           <div className="text-center">
             <h2 className="text-lg font-semibold text-zinc-100">Ask anything about your trading</h2>
-            <p className="text-sm text-zinc-500 mt-1">Claude analyses your last 90 days of data to answer your questions</p>
+            <p className="text-sm text-zinc-500 mt-1">AI analyses your last 90 days of data to answer your questions</p>
           </div>
           <div className="grid grid-cols-2 gap-2 w-full max-w-md">
             {STARTERS.map((s) => (
@@ -153,7 +153,7 @@ export function ChatInterface() {
           </button>
         </div>
         <p className="text-[10px] text-zinc-600 mt-2 text-center">
-          Powered by Claude · Based on your last 90 days of trading data
+          Powered by AI · Based on your last 90 days of trading data
         </p>
       </div>
     </div>

@@ -7,7 +7,7 @@ export default function AskAIPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-bold text-zinc-50">Ask AI</h1>
-        <p className="text-sm text-zinc-400">Chat with Claude about your trading performance</p>
+        <p className="text-sm text-zinc-400">Chat with AI about your trading performance</p>
       </div>
       <ChatInterface />
     </div>

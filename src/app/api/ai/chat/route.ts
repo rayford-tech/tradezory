@@ -43,15 +43,20 @@ ${a.mistakeFrequency.length > 0 ? `- Recurring mistakes: ${a.mistakeFrequency.sl
 
 Be concise, data-driven, and actionable. Use the trader's actual numbers when relevant.`;
 
-  const readable = await streamAI({
-    system: systemContext,
-    messages: messages.map((m: { role: string; content: string }) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    })),
-  });
+  try {
+    const readable = await streamAI({
+      system: systemContext,
+      messages: messages.map((m: { role: string; content: string }) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
+    });
 
-  return new NextResponse(readable, {
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
-  });
+    return new NextResponse(readable, {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  } catch (err: any) {
+    const msg = err?.message ?? "AI provider error";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
