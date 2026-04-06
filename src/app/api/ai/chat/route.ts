@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeAnalytics } from "@/lib/analytics";
-import { anthropic } from "@/lib/ai";
+import { streamAI } from "@/lib/ai";
 
 export const dynamic = "force-dynamic";
 
@@ -43,28 +43,12 @@ ${a.mistakeFrequency.length > 0 ? `- Recurring mistakes: ${a.mistakeFrequency.sl
 
 Be concise, data-driven, and actionable. Use the trader's actual numbers when relevant.`;
 
-  const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-6",
-    max_tokens: 500,
+  const readable = await streamAI({
     system: systemContext,
     messages: messages.map((m: { role: string; content: string }) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     })),
-  });
-
-  const readable = new ReadableStream({
-    async start(controller) {
-      for await (const chunk of stream) {
-        if (
-          chunk.type === "content_block_delta" &&
-          chunk.delta.type === "text_delta"
-        ) {
-          controller.enqueue(new TextEncoder().encode(chunk.delta.text));
-        }
-      }
-      controller.close();
-    },
   });
 
   return new NextResponse(readable, {

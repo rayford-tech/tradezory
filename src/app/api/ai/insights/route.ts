@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeAnalytics } from "@/lib/analytics";
-import { anthropic } from "@/lib/ai";
+import { callAI } from "@/lib/ai";
 
 export const dynamic = "force-dynamic";
 
@@ -47,15 +47,13 @@ ${topMistake ? `- Most frequent mistake: ${topMistake.name} (${topMistake.count}
 - Avg execution score: ${a.avgExecutionScore > 0 ? a.avgExecutionScore.toFixed(1) + "/10" : "not tracked"}
 `.trim();
 
-  const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 400,
+  const raw = await callAI({
     system:
       "You are a professional trading coach reviewing a trader's statistics. Generate exactly 4 bullet-point insights (one sentence each). Be specific with numbers. Identify patterns, risks, and opportunities. Be direct and actionable. Return only the 4 bullets starting with '•', no intro text, no extra lines.",
-    messages: [{ role: "user", content: context }],
+    user: context,
+    tier: "smart",
+    maxTokens: 400,
   });
-
-  const raw = (message.content[0] as any).text as string;
   const insights = raw
     .split("\n")
     .map((l) => l.replace(/^[•\-\*]\s*/, "").trim())

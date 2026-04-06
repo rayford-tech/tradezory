@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeAnalytics } from "@/lib/analytics";
-import { anthropic } from "@/lib/ai";
+import { callAI } from "@/lib/ai";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -42,15 +42,13 @@ ${a.avgExecutionScore > 0 ? `- Avg execution score: ${a.avgExecutionScore.toFixe
 ${a.mistakeFrequency.length > 0 ? `- Top mistakes: ${a.mistakeFrequency.slice(0, 3).map((m) => `${m.name} (${m.count}×)`).join(", ")}` : ""}
 `.trim();
 
-  const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 600,
+  const raw = await callAI({
     system:
       'You are a trading journal assistant. Generate a trading period review based on the data. Return valid JSON only (no markdown fences) with exactly these 4 string keys: "summary" (2-3 sentences on overall performance), "improvements" (2-3 specific areas to improve, bullet style with - prefix), "lessons" (2-3 key lessons learned, bullet style), "goals" (2-3 specific goals for next period, bullet style). Base everything on the actual data.',
-    messages: [{ role: "user", content: context }],
+    user: context,
+    tier: "smart",
+    maxTokens: 600,
   });
-
-  const raw = (message.content[0] as any).text as string;
   try {
     const parsed = JSON.parse(raw);
     return NextResponse.json(parsed);

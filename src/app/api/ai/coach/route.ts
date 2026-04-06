@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { anthropic } from "@/lib/ai";
+import { callAI } from "@/lib/ai";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -37,14 +37,13 @@ ${setups.length > 0 ? `- Setup tags: ${setups.join(", ")}` : ""}
 ${mistakes.length > 0 ? `- Mistake tags: ${mistakes.join(", ")}` : ""}
 `.trim();
 
-  const message = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 300,
+  const feedback = await callAI({
     system:
       "You are a concise trading coach. Review this trade and give exactly 3 short coaching observations numbered 1, 2, 3. Each observation is max 2 sentences. Focus on execution quality, psychology, and process — not just outcome. Be direct and constructive.",
-    messages: [{ role: "user", content: context }],
+    user: context,
+    tier: "fast",
+    maxTokens: 300,
   });
 
-  const feedback = (message.content[0] as any).text as string;
   return NextResponse.json({ feedback });
 }
