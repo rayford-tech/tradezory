@@ -10,8 +10,8 @@ import { GoogleGenAI } from "@google/genai";
 type ModelTier = "fast" | "smart";
 
 const GEMINI_MODELS: Record<ModelTier, string> = {
-  fast: "gemini-2.0-flash-lite",
-  smart: "gemini-2.0-flash",
+  fast: "gemini-2.5-flash",
+  smart: "gemini-2.5-flash",
 };
 
 const CLAUDE_MODELS: Record<ModelTier, string> = {
