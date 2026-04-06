@@ -46,5 +46,5 @@ export default async function CalendarPage() {
     dayMap[day].trades++;
   }
 
-  return <TradingCalendar dayMap={dayMap} rawTrades={trades as any} />;
+  return <TradingCalendar dayMap={dayMap} rawTrades={trades as any} timezone={userTimezone} />;
 }
