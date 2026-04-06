@@ -85,21 +85,31 @@ export function Sidebar() {
 
       {/* Bottom */}
       <div className="shrink-0 border-t border-zinc-800 px-3 py-3">
-        {bottomItems.map(({ label, href, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-              pathname.startsWith(href)
-                ? "bg-indigo-600/15 text-indigo-400"
-                : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0 text-zinc-500" />
-            {label}
-          </Link>
-        ))}
+        {bottomItems.map(({ label, href, icon: Icon }) => {
+          // Find the most specific (longest) bottom-item href that matches the
+          // current pathname — prevents /settings from staying active on /settings/billing
+          const matchingHrefs = bottomItems
+            .map((i) => i.href)
+            .filter((h) => pathname === h || pathname.startsWith(h + "/"));
+          const mostSpecific = matchingHrefs.sort((a, b) => b.length - a.length)[0];
+          const active = href === mostSpecific;
+
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                active
+                  ? "bg-indigo-600/15 text-indigo-400"
+                  : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
+              )}
+            >
+              <Icon className={cn("h-4 w-4 shrink-0", active ? "text-indigo-400" : "text-zinc-500")} />
+              {label}
+            </Link>
+          );
+        })}
       </div>
     </aside>
   );
