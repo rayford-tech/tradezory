@@ -18,6 +18,7 @@ import {
   TrendingUp,
   ChevronRight,
   Zap,
+  Sparkles,
 } from "lucide-react";
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { label: "Playbooks", href: "/playbooks", icon: BookMarked },
   { label: "Mistakes", href: "/mistakes", icon: AlertTriangle },
   { label: "Calendar", href: "/calendar", icon: Calendar },
+  { label: "Ask AI", href: "/ai", icon: Sparkles },
   { label: "Reviews", href: "/reviews/weekly", icon: FileText },
   { label: "Notes", href: "/notes", icon: FileText },
   { label: "Replay", href: "/replay", icon: Play },

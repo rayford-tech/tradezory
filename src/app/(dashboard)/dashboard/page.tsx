@@ -8,6 +8,7 @@ import { DailyPnlBar } from "@/components/dashboard/DailyPnlBar";
 import { InstrumentBreakdown } from "@/components/dashboard/InstrumentBreakdown";
 import { RecentTrades } from "@/components/dashboard/RecentTrades";
 import { DashboardCalendar } from "@/components/dashboard/DashboardCalendar";
+import { AIInsightsCard } from "@/components/dashboard/AIInsightsCard";
 import { toUserDate } from "@/lib/trade-utils";
 import { formatCurrency, formatPercent, formatRR } from "@/lib/utils";
 import {
@@ -202,6 +203,9 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* AI Insights */}
+      <AIInsightsCard />
 
       {/* Daily PnL + Instrument Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -23,6 +23,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { TradeForm } from "./TradeForm";
+import { TradeCoachCard } from "./TradeCoachCard";
 import { useUploadThing } from "@/components/shared/UploadComponents";
 
 interface TradeDetailProps {
@@ -259,6 +260,9 @@ export function TradeDetail({ trade, accounts, setupTags, mistakeTags }: TradeDe
               ))}
             </div>
           </div>
+
+          {/* AI Coach */}
+          {!isOpen && <TradeCoachCard tradeId={trade.id} />}
 
           {/* Tags */}
           {(tradSetups.length > 0 || tradMistakes.length > 0) && (

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import type { Review } from "@/types";
-import { Plus, Star, X } from "lucide-react";
+import { Plus, Star, X, Sparkles, Loader2 } from "lucide-react";
 
 interface ReviewsViewProps {
   type: "WEEKLY" | "MONTHLY";
@@ -20,6 +20,7 @@ const FIELDS = [
 export function ReviewsView({ type, reviews }: ReviewsViewProps) {
   const [showNew, setShowNew] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({
     summary: "",
     improvements: "",
@@ -33,6 +34,32 @@ export function ReviewsView({ type, reviews }: ReviewsViewProps) {
     type === "WEEKLY" ? startOfWeek(now, { weekStartsOn: 1 }) : startOfMonth(now);
   const defaultEnd =
     type === "WEEKLY" ? endOfWeek(now, { weekStartsOn: 1 }) : endOfMonth(now);
+
+  async function generateWithAI() {
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/ai/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          periodStart: defaultStart.toISOString(),
+          periodEnd: defaultEnd.toISOString(),
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setForm((f) => ({
+        ...f,
+        summary: data.summary ?? f.summary,
+        improvements: data.improvements ?? f.improvements,
+        lessons: data.lessons ?? f.lessons,
+        goals: data.goals ?? f.goals,
+      }));
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   async function createReview() {
     setSaving(true);
@@ -112,13 +139,21 @@ export function ReviewsView({ type, reviews }: ReviewsViewProps) {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={createReview}
               disabled={saving}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save Review"}
+            </button>
+            <button
+              onClick={generateWithAI}
+              disabled={generating}
+              className="flex items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 disabled:opacity-60 transition-colors"
+            >
+              {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 text-indigo-400" />}
+              {generating ? "Generating..." : "Generate with AI"}
             </button>
             <button
               onClick={() => setShowNew(false)}
