@@ -50,7 +50,7 @@ export function TradeCoachCard({ tradeId }: TradeCoachCardProps) {
           ))}
         </div>
       ) : error ? (
-        <p className="text-xs text-zinc-500">AI coach unavailable — add ANTHROPIC_API_KEY to enable</p>
+        <p className="text-xs text-zinc-500">AI coach unavailable — try refreshing or contact support</p>
       ) : (
         <div className="space-y-3">
           {observations.map((obs, i) => (

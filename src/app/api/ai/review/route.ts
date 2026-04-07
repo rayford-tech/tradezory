@@ -46,7 +46,7 @@ ${a.mistakeFrequency.length > 0 ? `- Top mistakes: ${a.mistakeFrequency.slice(0,
     system:
       'You are a trading journal assistant. Generate a trading period review based on the data. Return valid JSON only (no markdown fences) with exactly these 4 string keys: "summary" (2-3 sentences on overall performance), "improvements" (2-3 specific areas to improve, bullet style with - prefix), "lessons" (2-3 key lessons learned, bullet style), "goals" (2-3 specific goals for next period, bullet style). Base everything on the actual data.',
     user: context,
-    tier: "smart",
+    tier: "fast",
     maxTokens: 600,
   });
   try {

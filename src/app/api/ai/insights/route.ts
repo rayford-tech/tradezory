@@ -51,7 +51,7 @@ ${topMistake ? `- Most frequent mistake: ${topMistake.name} (${topMistake.count}
     system:
       "You are a professional trading coach reviewing a trader's statistics. Generate exactly 4 bullet-point insights (one sentence each). Be specific with numbers. Identify patterns, risks, and opportunities. Be direct and actionable. Return only the 4 bullets starting with '•', no intro text, no extra lines.",
     user: context,
-    tier: "smart",
+    tier: "fast",
     maxTokens: 400,
   });
   const insights = raw

@@ -45,7 +45,12 @@ export function ChatInterface() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: nextMessages }),
       });
-      if (!res.ok || !res.body) throw new Error();
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `Server error (${res.status})`);
+      }
+      if (!res.body) throw new Error("No response stream");
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -60,10 +65,10 @@ export function ChatInterface() {
           { role: "assistant", content: acc },
         ]);
       }
-    } catch {
+    } catch (err: any) {
       setMessages((prev) => [
         ...prev.slice(0, -1),
-        { role: "assistant", content: "Sorry, something went wrong. Make sure a valid GEMINI_API_KEY (free at aistudio.google.com) or ANTHROPIC_API_KEY is set in your environment variables." },
+        { role: "assistant", content: `Sorry, something went wrong: ${err?.message ?? "Unknown error"}. Please try again.` },
       ]);
     } finally {
       setStreaming(false);

@@ -59,7 +59,7 @@ export function AIInsightsCard() {
         </div>
       ) : error ? (
         <div className="flex items-center justify-between py-2">
-          <p className="text-xs text-zinc-500">AI insights unavailable — add ANTHROPIC_API_KEY to enable</p>
+          <p className="text-xs text-zinc-500">AI insights unavailable — check Settings → MT5 Integration or contact support</p>
           <button onClick={load} className="text-xs text-indigo-400 hover:text-indigo-300">
             Retry
           </button>
