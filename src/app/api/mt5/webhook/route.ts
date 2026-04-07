@@ -16,7 +16,7 @@ function verifySignature(signature: string): boolean {
   const ts = Number(parts[1]);
   if (isNaN(ts)) return false;
   const ageSeconds = Math.abs(Math.floor(Date.now() / 1000) - ts);
-  return ageSeconds < 300; // 5-minute window
+  return ageSeconds < 3600; // 1-hour window to handle broker clock skew
 }
 
 /**
@@ -113,12 +113,26 @@ export async function POST(req: NextRequest) {
     brokerMetadata: payload as any,
   };
 
-  // Atomic upsert — the unique index on (externalId, accountId) prevents race-condition duplicates
-  const trade = await db.trade.upsert({
-    where: { externalId_accountId: { externalId, accountId } },
-    update: tradeData,
-    create: { ...tradeData, userId: account.userId, accountId },
-  });
+  let trade: Awaited<ReturnType<typeof db.trade.upsert>>;
+  try {
+    // Atomic upsert — the unique index on (externalId, accountId) prevents race-condition duplicates
+    trade = await db.trade.upsert({
+      where: { externalId_accountId: { externalId, accountId } },
+      update: tradeData,
+      create: { ...tradeData, userId: account.userId, accountId },
+    });
+  } catch (err) {
+    console.error("[mt5/webhook] upsert failed", {
+      externalId,
+      accountId,
+      symbol: payload.symbol,
+      error: String(err),
+    });
+    return NextResponse.json(
+      { error: "DB upsert failed", detail: String(err) },
+      { status: 500 }
+    );
+  }
 
   // Clean up old EA v1 records that have entry=exit price (bad format from old EA)
   if (isClosingDeal) {
@@ -135,24 +149,21 @@ export async function POST(req: NextRequest) {
   }
 
   // Create copy signals only on first insert (not updates)
-  const isNew = trade.openTime.getTime() === openTime.getTime(); // heuristic: same openTime means just created
-  if (isNew) {
-    const follows = await db.copyFollow.findMany({ where: { followedUserId: account.userId } });
-    if (follows.length > 0) {
-      await db.copySignal.createMany({
-        skipDuplicates: true,
-        data: follows.map((f) => ({
-          adminId: f.adminId,
-          sourceTradeId: trade.id,
-          instrument: tradeData.instrument,
-          direction: tradeData.direction,
-          volume: Number(tradeData.lotSize ?? 0.01),
-          openPrice: Number(tradeData.entryPrice),
-          stopLoss: tradeData.stopLoss ? Number(tradeData.stopLoss) : null,
-          takeProfit: tradeData.takeProfit ? Number(tradeData.takeProfit) : null,
-        })),
-      });
-    }
+  const follows = await db.copyFollow.findMany({ where: { followedUserId: account.userId } });
+  if (follows.length > 0) {
+    await db.copySignal.createMany({
+      skipDuplicates: true,
+      data: follows.map((f) => ({
+        adminId: f.adminId,
+        sourceTradeId: trade.id,
+        instrument: tradeData.instrument,
+        direction: tradeData.direction,
+        volume: Number(tradeData.lotSize ?? 0.01),
+        openPrice: Number(tradeData.entryPrice),
+        stopLoss: tradeData.stopLoss ? Number(tradeData.stopLoss) : null,
+        takeProfit: tradeData.takeProfit ? Number(tradeData.takeProfit) : null,
+      })),
+    });
   }
 
   return NextResponse.json({ success: true, tradeId: trade.id });

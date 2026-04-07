@@ -268,11 +268,11 @@ void SyncHistoricalDeals()
 //+------------------------------------------------------------------+
 void OnTrade()
 {
-   if(!HistorySelect(TimeCurrent() - 60, TimeCurrent() + 60))
+   if(!HistorySelect(TimeCurrent() - 120, TimeCurrent() + 5))
       return;
 
    int totalDeals = HistoryDealsTotal();
-   for(int i = totalDeals - 1; i >= MathMax(0, totalDeals - 5); i--)
+   for(int i = totalDeals - 1; i >= MathMax(0, totalDeals - 50); i--)
    {
       ulong ticket = HistoryDealGetTicket(i);
       if(ticket == 0) continue;
@@ -284,8 +284,8 @@ void OnTrade()
 
       if(dealType != DEAL_TYPE_BUY && dealType != DEAL_TYPE_SELL) continue;
 
-      // Only process recent deals (last 10 seconds)
-      if(TimeCurrent() - (datetime)time > 10) continue;
+      // Only process recent deals (last 30 seconds)
+      if(TimeCurrent() - (datetime)time > 30) continue;
 
       bool isOpen  = (entry == DEAL_ENTRY_IN);
       bool isClose = (entry == DEAL_ENTRY_OUT || entry == DEAL_ENTRY_INOUT);

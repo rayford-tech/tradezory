@@ -9,6 +9,7 @@ import { InstrumentBreakdown } from "@/components/dashboard/InstrumentBreakdown"
 import { RecentTrades } from "@/components/dashboard/RecentTrades";
 import { DashboardCalendar } from "@/components/dashboard/DashboardCalendar";
 import { AIInsightsCard } from "@/components/dashboard/AIInsightsCard";
+import { DashboardAutoRefresh } from "@/components/dashboard/DashboardAutoRefresh";
 import { toUserDate } from "@/lib/trade-utils";
 import { formatCurrency, formatPercent, formatRR } from "@/lib/utils";
 import {
@@ -69,6 +70,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <DashboardAutoRefresh />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
