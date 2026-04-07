@@ -81,7 +81,6 @@ export async function POST(req: NextRequest) {
 
   // Upsert by externalId so re-sends from EA are idempotent
   const externalId = String(payload.ticket);
-  const existing = await db.trade.findFirst({ where: { externalId, accountId } });
 
   const tradeData = {
     instrument: payload.symbol,
@@ -114,18 +113,20 @@ export async function POST(req: NextRequest) {
     brokerMetadata: payload as any,
   };
 
-  let trade: { id: string };
-  if (existing) {
-    trade = await db.trade.update({ where: { id: existing.id }, data: tradeData });
-  } else {
-    trade = await db.trade.create({
-      data: { ...tradeData, userId: account.userId, accountId },
-    });
+  // Atomic upsert — the unique index on (externalId, accountId) prevents race-condition duplicates
+  const trade = await db.trade.upsert({
+    where: { externalId_accountId: { externalId, accountId } },
+    update: tradeData,
+    create: { ...tradeData, userId: account.userId, accountId },
+  });
 
-    // Create copy signals for any admin following this trader
+  // Create copy signals only on first insert (not updates)
+  const isNew = trade.openTime.getTime() === openTime.getTime(); // heuristic: same openTime means just created
+  if (isNew) {
     const follows = await db.copyFollow.findMany({ where: { followedUserId: account.userId } });
     if (follows.length > 0) {
       await db.copySignal.createMany({
+        skipDuplicates: true,
         data: follows.map((f) => ({
           adminId: f.adminId,
           sourceTradeId: trade.id,

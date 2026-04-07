@@ -26,7 +26,7 @@ input bool     SendOnOpen           = true;    // Send webhook when trade opens
 input bool     SendOnClose          = true;    // Send webhook when trade closes
 input bool     SendOnModify         = false;   // Send webhook when SL/TP modified
 input int      HttpTimeout          = 5000;    // Request timeout (ms)
-input bool     SendHistoricalOnInit = true;    // Sync past closed trades on EA start
+input bool     SendHistoricalOnInit = false;   // Set true ONCE to backfill history, then set back to false
 input datetime HistoricalSyncFrom   = 0;       // Backfill start date (0 = all history)
 
 //+------------------------------------------------------------------+

@@ -251,7 +251,7 @@ model Trade {
   @@index([userId, openTime])
   @@index([userId, status])
   @@index([userId, accountId])
-  @@index([externalId])
+  @@unique([externalId, accountId])
 }
 
 // ─── Tags ─────────────────────────────────────────────────────────────────────
