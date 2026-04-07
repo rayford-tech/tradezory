@@ -9,9 +9,10 @@ interface SettingsViewProps {
   accounts: TradingAccount[];
   setupTags: SetupTag[];
   mistakeTags: MistakeTag[];
+  mt5WebhookSecret?: string;
 }
 
-export function SettingsView({ user, accounts, setupTags, mistakeTags }: SettingsViewProps) {
+export function SettingsView({ user, accounts, setupTags, mistakeTags, mt5WebhookSecret }: SettingsViewProps) {
   const [activeTab, setActiveTab] = useState<"profile" | "accounts" | "tags" | "mt5">("profile");
 
   const [profileName, setProfileName] = useState(user.name ?? "");
@@ -333,7 +334,7 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags }: Setting
                 <div className="space-y-1 font-mono text-xs">
                   <div className="flex gap-2"><span className="text-zinc-500 w-36">WebhookURL:</span><span className="text-indigo-400">{typeof window !== "undefined" ? window.location.origin : "https://yourapp.com"}/api/mt5/webhook</span></div>
                   <div className="flex gap-2"><span className="text-zinc-500 w-36">AccountID:</span><span className="text-amber-400">{accounts[0]?.id ?? "your-account-id"}</span></div>
-                  <div className="flex gap-2"><span className="text-zinc-500 w-36">HMACSecret:</span><span className="text-emerald-400">{"Set in your .env as MT5_WEBHOOK_SECRET"}</span></div>
+                  <div className="flex gap-2"><span className="text-zinc-500 w-36">HMACSecret:</span><span className="text-emerald-400">{mt5WebhookSecret || "contact support"}</span></div>
                 </div>
               </div>
               <div className="rounded-lg border border-zinc-700 p-4">

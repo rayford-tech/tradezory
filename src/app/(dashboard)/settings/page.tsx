@@ -21,6 +21,7 @@ export default async function SettingsPage() {
       accounts={accounts}
       setupTags={setupTags}
       mistakeTags={mistakeTags}
+      mt5WebhookSecret={process.env.MT5_WEBHOOK_SECRET ?? ""}
     />
   );
 }
