@@ -172,7 +172,7 @@ export function ImportView({ accounts }: ImportViewProps) {
 
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-3">
             <h2 className="text-sm font-semibold text-zinc-200">Column Mapping</h2>
-            <p className="text-xs text-zinc-500">Map your CSV columns to TradeForge fields. Required fields are marked with *.</p>
+            <p className="text-xs text-zinc-500">Map your CSV columns to Tradezory fields. Required fields are marked with *.</p>
             <div className="grid grid-cols-2 gap-3">
               {SYSTEM_FIELDS.map(({ key, label }) => (
                 <div key={key}>

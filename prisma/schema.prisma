@@ -15,6 +15,17 @@ enum Plan {
   ELITE
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum SignalStatus {
+  PENDING
+  EXECUTED
+  CANCELLED
+}
+
 enum AccountType {
   LIVE
   DEMO
@@ -132,9 +143,16 @@ model User {
   password  String?
   image     String?
   plan      Plan     @default(FREE)
+  role      UserRole @default(USER)
   timezone  String   @default("UTC")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Stripe billing
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  subscriptionStatus   String?
+  currentPeriodEnd     DateTime?
 
   accounts Account[]
   sessions Session[]
@@ -147,6 +165,9 @@ model User {
   notes              Note[]
   reviews            Review[]
   brokerConnections  BrokerConnection[]
+  following          CopyFollow[]       @relation("AdminFollows")
+  followers          CopyFollow[]       @relation("IsFollowed")
+  copySignals        CopySignal[]
 }
 
 // ─── Trading Accounts ─────────────────────────────────────────────────────────
@@ -225,6 +246,7 @@ model Trade {
   tradeTags   TradeTag[]
   screenshots Screenshot[]
   replayData  ReplayData?
+  copySignals CopySignal[]
 
   @@index([userId, openTime])
   @@index([userId, status])
@@ -378,4 +400,38 @@ model BrokerConnection {
   tradingAccount TradingAccount? @relation(fields: [tradingAccountId], references: [id])
 
   @@index([userId])
+}
+
+// ─── Copy Trading ─────────────────────────────────────────────────────────────
+
+model CopyFollow {
+  id             String   @id @default(cuid())
+  adminId        String
+  followedUserId String
+  createdAt      DateTime @default(now())
+
+  admin        User @relation("AdminFollows", fields: [adminId], references: [id], onDelete: Cascade)
+  followedUser User @relation("IsFollowed", fields: [followedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([adminId, followedUserId])
+}
+
+model CopySignal {
+  id            String       @id @default(cuid())
+  adminId       String
+  sourceTradeId String
+  instrument    String
+  direction     String
+  volume        Float        @default(0.01)
+  openPrice     Float
+  stopLoss      Float?
+  takeProfit    Float?
+  status        SignalStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  executedAt    DateTime?
+
+  admin       User  @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  sourceTrade Trade @relation(fields: [sourceTradeId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, status])
 }

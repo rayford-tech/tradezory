@@ -7,7 +7,7 @@ export default auth((req) => {
 
   // Public routes
   const publicRoutes = ["/", "/login", "/signup", "/forgot-password"];
-  const isPublic = publicRoutes.some((r) => pathname === r || pathname.startsWith("/api/auth"));
+  const isPublic = publicRoutes.some((r) => pathname === r || pathname.startsWith("/api/auth") || pathname === "/api/mt5/webhook");
 
   if (!isLoggedIn && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url));

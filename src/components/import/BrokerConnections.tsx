@@ -39,10 +39,10 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 const EA_STEPS = [
-  "Download the TradeForge_EA.mq5 file below",
+  "Download the Tradezory_EA.mq5 file below",
   "Open MetaTrader 5 → File → Open Data Folder → MQL5 → Experts",
   "Copy the EA file there, then restart MetaTrader",
-  "Attach the EA to any chart — it will push trades to TradeForge in real time",
+  "Attach the EA to any chart — it will push trades to Tradezory in real time",
 ];
 
 export function BrokerConnections({ connections: initial }: BrokerConnectionsProps) {
@@ -128,7 +128,7 @@ export function BrokerConnections({ connections: initial }: BrokerConnectionsPro
           {expanded[conn.id] && (
             <div className="border-t border-zinc-800 px-4 pb-4 pt-3 space-y-3">
               <p className="text-xs font-semibold text-zinc-300">
-                Trades sync automatically via the TradeForge MT5 Expert Advisor
+                Trades sync automatically via the Tradezory MT5 Expert Advisor
               </p>
               <ol className="space-y-2">
                 {EA_STEPS.map((step, i) => (
@@ -142,12 +142,12 @@ export function BrokerConnections({ connections: initial }: BrokerConnectionsPro
               </ol>
               <div className="flex items-center gap-2 flex-wrap">
                 <a
-                  href="/mt5-ea/TradeForge_EA.mq5"
+                  href="/mt5-ea/Tradezory_EA.mq5"
                   download
                   className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-500 transition-colors"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  Download TradeForge_EA.mq5
+                  Download Tradezory_EA.mq5
                 </a>
                 {conn.tradingAccount && (
                   <button

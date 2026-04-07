@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { encrypt } from "@/lib/encryption";
-import { isMetaApiConfigured, provisionAccount } from "@/lib/metaapi";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -48,7 +47,7 @@ export async function POST(req: NextRequest) {
   // Encrypt the investor password
   const encryptedPassword = encrypt(password);
 
-  // Create the connection record
+  // Create the connection record — credentials stored locally, EA webhook handles live sync
   const connection = await db.brokerConnection.create({
     data: {
       userId: session.user.id,
@@ -59,33 +58,10 @@ export async function POST(req: NextRequest) {
       encryptedPassword,
       tradingAccountId: tradingAccountId || null,
       syncFromDate: syncFromDate ? new Date(syncFromDate) : null,
-      status: "PENDING",
+      status: "ACTIVE",
     },
     include: { tradingAccount: { select: { id: true, name: true, type: true } } },
   });
-
-  // If MetaApi is configured, provision the account asynchronously
-  if (isMetaApiConfigured() && (platform === "MT5" || platform === "MT4")) {
-    try {
-      const metaApiAccountId = await provisionAccount({
-        name: `${brokerName} ${login}`,
-        server,
-        login,
-        password,
-        platform: platform.toLowerCase() as "mt5" | "mt4",
-      });
-
-      await db.brokerConnection.update({
-        where: { id: connection.id },
-        data: { metaApiAccountId, status: "CONNECTING" },
-      });
-    } catch (err: any) {
-      await db.brokerConnection.update({
-        where: { id: connection.id },
-        data: { status: "ERROR", lastError: err.message },
-      });
-    }
-  }
 
   const { encryptedPassword: _, ...safe } = connection;
   return NextResponse.json(safe, { status: 201 });

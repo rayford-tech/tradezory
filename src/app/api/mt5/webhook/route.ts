@@ -1,15 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createHmac } from "crypto";
 import { inferSession } from "@/lib/trade-utils";
 import type { MT5WebhookPayload } from "@/types";
 
-// Verify HMAC-SHA256 signature from MT5 EA
-function verifySignature(body: string, signature: string): boolean {
-  const secret = process.env.MT5_WEBHOOK_SECRET;
+/**
+ * Verify the EA's signature: "secret|timestamp"
+ * Allow 5-minute window to prevent replay attacks.
+ */
+function verifySignature(signature: string): boolean {
+  const secret = process.env.MT5_WEBHOOK_SECRET?.trim();
   if (!secret) return false;
-  const expected = createHmac("sha256", secret).update(body).digest("hex");
-  return signature === expected;
+  const parts = signature.split("|");
+  if (parts.length !== 2) return false;
+  if (parts[0] !== secret) return false;
+  const ts = Number(parts[1]);
+  if (isNaN(ts)) return false;
+  const ageSeconds = Math.abs(Math.floor(Date.now() / 1000) - ts);
+  return ageSeconds < 300; // 5-minute window
+}
+
+/**
+ * MT5 sends dates as "YYYY.MM.DD HH:MM:SS" — convert to ISO for JS Date parsing.
+ */
+function parseMT5Date(str: string): Date | null {
+  if (!str) return null;
+  // Replace dots in date part with dashes, space with T, append Z
+  const iso = str.replace(/^(\d{4})\.(\d{2})\.(\d{2}) /, "$1-$2-$3T") + "Z";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 function mapMT5Type(type: string): "BUY" | "SELL" {
@@ -18,16 +36,16 @@ function mapMT5Type(type: string): "BUY" | "SELL" {
 
 /**
  * POST /api/mt5/webhook
- * Called by the TradeForge MT5 Expert Advisor on every trade event.
- * Header: X-TradeForge-Signature: <hmac-sha256 of body>
- * Header: X-TradeForge-AccountId: <tradingAccount.id>
+ * Called by the Tradezory MT5 Expert Advisor on every trade event.
+ * Header: X-Tradezory-Signature: <secret>|<timestamp>
+ * Header: X-Tradezory-Account-Id: <tradingAccount.id>
  */
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
-  const signature = req.headers.get("x-tradeforge-signature") ?? "";
-  const accountId = req.headers.get("x-tradeforge-account-id");
+  const signature = req.headers.get("x-tradezory-signature") ?? "";
+  const accountId = req.headers.get("x-tradezory-account-id");
 
-  if (!verifySignature(rawBody, signature)) {
+  if (!verifySignature(signature)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
@@ -48,24 +66,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }
 
-  const openTime = new Date(payload.openTime);
-  const closeTime = payload.closeTime ? new Date(payload.closeTime) : null;
+  const openTime = parseMT5Date(payload.openTime);
+  const closeTime = parseMT5Date(payload.closeTime ?? "");
+
+  if (!openTime) {
+    return NextResponse.json({ error: "Invalid openTime format" }, { status: 400 });
+  }
+
   const holdingMinutes = closeTime
     ? Math.round((closeTime.getTime() - openTime.getTime()) / 60000)
     : null;
 
+  const isClosingDeal = !!closeTime;
+
   // Upsert by externalId so re-sends from EA are idempotent
   const externalId = String(payload.ticket);
-  const existing = await db.trade.findFirst({
-    where: { externalId, accountId },
-  });
+  const existing = await db.trade.findFirst({ where: { externalId, accountId } });
 
   const tradeData = {
     instrument: payload.symbol,
-    assetClass: "FOREX" as const, // EA can send asset class; default FOREX
+    assetClass: payload.symbol.includes("BTC") || payload.symbol.includes("ETH") || payload.symbol.includes("XRP")
+      ? "CRYPTO" as const
+      : payload.symbol.includes("US30") || payload.symbol.includes("NAS") || payload.symbol.includes("SPX")
+      ? "INDICES" as const
+      : payload.symbol.includes("XAU") || payload.symbol.includes("OIL") || payload.symbol.includes("WTI")
+      ? "COMMODITIES" as const
+      : "FOREX" as const,
     direction: mapMT5Type(payload.type),
     entryPrice: payload.openPrice,
-    exitPrice: payload.closePrice ?? null,
+    // For closing deals, openPrice IS the exit price in MT5's deal model
+    exitPrice: isClosingDeal ? payload.openPrice : (payload.closePrice ?? null),
     stopLoss: payload.sl || null,
     takeProfit: payload.tp || null,
     lotSize: payload.volume,
@@ -77,20 +107,37 @@ export async function POST(req: NextRequest) {
     closeTime,
     holdingMinutes,
     session: inferSession(openTime.toISOString()),
-    status: closeTime ? ("CLOSED" as const) : ("OPEN" as const),
+    status: isClosingDeal ? ("CLOSED" as const) : ("OPEN" as const),
     tradeType: account.type === "DEMO" ? ("DEMO" as const) : ("LIVE" as const),
     notes: payload.comment ?? null,
     externalId,
     brokerMetadata: payload as any,
   };
 
-  let trade;
+  let trade: { id: string };
   if (existing) {
     trade = await db.trade.update({ where: { id: existing.id }, data: tradeData });
   } else {
     trade = await db.trade.create({
       data: { ...tradeData, userId: account.userId, accountId },
     });
+
+    // Create copy signals for any admin following this trader
+    const follows = await db.copyFollow.findMany({ where: { followedUserId: account.userId } });
+    if (follows.length > 0) {
+      await db.copySignal.createMany({
+        data: follows.map((f) => ({
+          adminId: f.adminId,
+          sourceTradeId: trade.id,
+          instrument: tradeData.instrument,
+          direction: tradeData.direction,
+          volume: Number(tradeData.lotSize ?? 0.01),
+          openPrice: Number(tradeData.entryPrice),
+          stopLoss: tradeData.stopLoss ? Number(tradeData.stopLoss) : null,
+          takeProfit: tradeData.takeProfit ? Number(tradeData.takeProfit) : null,
+        })),
+      });
+    }
   }
 
   return NextResponse.json({ success: true, tradeId: trade.id });

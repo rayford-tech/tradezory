@@ -78,7 +78,7 @@ export async function provisionAccount(spec: MetaApiAccountSpec): Promise<string
       magic: spec.magic ?? 0,
       type: "cloud-g2",
       region: "london",
-      tags: ["tradeforge"],
+      tags: ["tradezory"],
     }),
   });
 

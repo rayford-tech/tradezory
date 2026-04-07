@@ -353,11 +353,11 @@ export function BrokerWizard({ accounts, onFileUpload }: BrokerWizardProps) {
               </div>
             )}
 
-            {/* Warning box */}
-            <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-              <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+            {/* Info box */}
+            <div className="flex items-start gap-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3">
+              <AlertCircle className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
               <p className="text-xs text-zinc-400">
-                This import uses MetaApi cloud sync. Trades are read-only via your <span className="text-amber-400">Investor Password</span> — we cannot place or modify trades on your behalf. Requires METAAPI_TOKEN environment variable.
+                Your credentials are encrypted and stored locally. After connecting, install the <span className="text-indigo-400">Tradezory EA</span> in MetaTrader to push trades to your journal automatically — no third-party service required.
               </p>
             </div>
 
@@ -456,26 +456,16 @@ export function BrokerWizard({ accounts, onFileUpload }: BrokerWizardProps) {
           </div>
           <h2 className="text-lg font-bold text-zinc-50">Broker Connected</h2>
 
-          {result.status === "CONNECTING" ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-center gap-2 text-sm text-zinc-400">
-                <Loader2 className="h-4 w-4 animate-spin text-indigo-400" />
-                Establishing connection to {selectedBroker?.name}...
-              </div>
-              <p className="text-xs text-zinc-500">
-                MetaApi is provisioning your account. This usually takes 1–2 minutes.
-                Once connected, trades will sync automatically.
-              </p>
-            </div>
-          ) : result.status === "ERROR" ? (
-            <p className="text-sm text-red-400">
-              Connection stored but MetaApi is not configured. Add <code className="bg-zinc-800 px-1 rounded">METAAPI_TOKEN</code> to your environment to enable auto-sync.
-            </p>
-          ) : (
-            <p className="text-sm text-zinc-400">
-              Your broker is connected. Trades will sync automatically.
-            </p>
-          )}
+          <p className="text-sm text-zinc-400">
+            Your broker credentials are saved. Install the <span className="text-indigo-400 font-medium">Tradezory EA</span> in MetaTrader to automatically push trades to your journal.
+          </p>
+          <a
+            href="/mt5-ea/Tradezory_EA.mq5"
+            download
+            className="inline-flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-5 py-2.5 text-sm text-indigo-300 hover:bg-indigo-500/20 transition-colors"
+          >
+            Download Tradezory_EA.mq5
+          </a>
 
           <div className="flex justify-center gap-3 pt-2">
             <a href="/journal" className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-500">

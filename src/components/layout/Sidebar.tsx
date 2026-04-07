@@ -52,8 +52,8 @@ export function Sidebar() {
           <Zap className="h-4 w-4 text-white" />
         </div>
         <div>
-          <p className="text-sm font-bold tracking-tight text-zinc-50">TradeForge</p>
-          <p className="text-[10px] text-zinc-500 tracking-wider uppercase">Forge Your Edge</p>
+          <p className="text-sm font-bold tracking-tight text-zinc-50">Tradezory</p>
+          <p className="text-[10px] text-zinc-500 tracking-wider uppercase">Trade Smarter</p>
         </div>
       </div>
 

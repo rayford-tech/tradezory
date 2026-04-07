@@ -37,7 +37,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 shadow-lg shadow-indigo-900/40">
             <Zap className="h-5 w-5 text-white" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-zinc-50">TradeForge</span>
+          <span className="text-xl font-bold tracking-tight text-zinc-50">Tradezory</span>
         </div>
 
         {/* Hero copy */}
@@ -68,7 +68,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         {/* Footer */}
-        <p className="relative text-xs text-zinc-600">© 2025 TradeForge · Built for serious traders.</p>
+        <p className="relative text-xs text-zinc-600">© 2025 Tradezory · Built for serious traders.</p>
       </div>
 
       {/* ── Right form panel ── */}
@@ -78,7 +78,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-600">
             <Zap className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-tight text-zinc-50">TradeForge</span>
+          <span className="text-lg font-bold tracking-tight text-zinc-50">Tradezory</span>
         </div>
 
         {children}

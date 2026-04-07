@@ -42,7 +42,7 @@ export default function LoginPage() {
   }
 
   function fillDemo() {
-    setEmail("demo@tradeforge.io");
+    setEmail("demo@tradezory.io");
     setPassword("demo1234");
   }
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
     <div className="w-full max-w-md">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-zinc-50">Welcome back</h1>
-        <p className="mt-1.5 text-sm text-zinc-400">Sign in to your TradeForge account.</p>
+        <p className="mt-1.5 text-sm text-zinc-400">Sign in to your Tradezory account.</p>
       </div>
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-xl shadow-black/20">
@@ -156,7 +156,7 @@ export default function LoginPage() {
           <p className="text-xs text-zinc-500 mb-2">Try the demo account:</p>
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <p className="text-xs font-mono text-zinc-300">demo@tradeforge.io</p>
+              <p className="text-xs font-mono text-zinc-300">demo@tradezory.io</p>
               <p className="text-xs font-mono text-zinc-300">demo1234</p>
             </div>
             <button

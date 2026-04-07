@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     .map((i) => `${i.instrument} ($${i.netPnl.toFixed(0)})`)
     .join(", ");
 
-  const systemContext = `You are an expert trading coach and analyst embedded in TradeForge, a trading journal app. You have full access to this trader's data from the last 90 days.
+  const systemContext = `You are an expert trading coach and analyst embedded in Tradezory, a trading journal app. You have full access to this trader's data from the last 90 days.
 
 Trader stats:
 - Closed trades: ${a.totalTrades}

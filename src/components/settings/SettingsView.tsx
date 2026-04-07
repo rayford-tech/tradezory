@@ -322,9 +322,9 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags }: Setting
             <div className="space-y-3">
               <div className="rounded-lg border border-zinc-700 p-4">
                 <p className="text-xs font-semibold text-zinc-300 mb-1">Step 1: Download the EA</p>
-                <p className="text-xs text-zinc-500 mb-2">Download the TradeForge Expert Advisor and place it in your MT5 Experts folder.</p>
-                <a href="/mt5-ea/TradeForge_EA.mq5" download className="inline-flex items-center gap-2 rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-zinc-100 hover:border-zinc-600 transition-colors">
-                  ↓ Download TradeForge_EA.mq5
+                <p className="text-xs text-zinc-500 mb-2">Download the Tradezory Expert Advisor and place it in your MT5 Experts folder.</p>
+                <a href="/mt5-ea/Tradezory_EA.mq5" download className="inline-flex items-center gap-2 rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-zinc-100 hover:border-zinc-600 transition-colors">
+                  ↓ Download Tradezory_EA.mq5
                 </a>
               </div>
               <div className="rounded-lg border border-zinc-700 p-4">
@@ -338,7 +338,7 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags }: Setting
               </div>
               <div className="rounded-lg border border-zinc-700 p-4">
                 <p className="text-xs font-semibold text-zinc-300 mb-1">Step 3: Attach to Chart</p>
-                <p className="text-xs text-zinc-500">Drag the EA onto any chart in MT5. Enable "Allow WebRequests" and add your TradeForge URL in Tools → Options → Expert Advisors.</p>
+                <p className="text-xs text-zinc-500">Drag the EA onto any chart in MT5. Enable "Allow WebRequests" and add your Tradezory URL in Tools → Options → Expert Advisors.</p>
               </div>
             </div>
 

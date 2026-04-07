@@ -26,7 +26,7 @@ export default function LandingPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
               <Zap className="h-4 w-4 text-white" />
             </div>
-            <span className="text-sm font-bold tracking-tight">TradeForge</span>
+            <span className="text-sm font-bold tracking-tight">Tradezory</span>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm text-zinc-400 hover:text-zinc-200 px-3 py-1.5 transition-colors">
@@ -55,7 +55,7 @@ export default function LandingPage() {
             <span className="text-indigo-400"> Trading Edge</span>
           </h1>
           <p className="text-lg text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            TradeForge is the all-in-one trading journal and analytics platform that helps you log trades,
+            Tradezory is the all-in-one trading journal and analytics platform that helps you log trades,
             review performance, track mistakes, and build consistent profitability — like a fitness tracker for your trading.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -72,7 +72,7 @@ export default function LandingPage() {
               Try demo account
             </Link>
           </div>
-          <p className="mt-4 text-xs text-zinc-600">Demo: demo@tradeforge.io / demo1234</p>
+          <p className="mt-4 text-xs text-zinc-600">Demo: demo@tradezory.io / demo1234</p>
         </div>
       </section>
 
@@ -127,7 +127,7 @@ export default function LandingPage() {
                 <ul className="space-y-2 text-sm text-zinc-300">
                   <li className="flex items-start gap-2">
                     <span className="text-emerald-400 font-bold shrink-0">1.</span>
-                    <span><strong>Free EA (recommended):</strong> Download our MQL5 Expert Advisor — fires trades to TradeForge in real-time via webhook.</span>
+                    <span><strong>Free EA (recommended):</strong> Download our MQL5 Expert Advisor — fires trades to Tradezory in real-time via webhook.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-emerald-400 font-bold shrink-0">2.</span>
@@ -157,7 +157,7 @@ export default function LandingPage() {
       <section className="py-24 px-6 text-center">
         <div className="mx-auto max-w-xl">
           <h2 className="text-3xl font-bold text-zinc-50 mb-4">Ready to forge your edge?</h2>
-          <p className="text-zinc-400 mb-8">Join traders who use TradeForge to turn data into consistent profitability.</p>
+          <p className="text-zinc-400 mb-8">Join traders who use Tradezory to turn data into consistent profitability.</p>
           <Link
             href="/signup"
             className="inline-block rounded-xl bg-indigo-600 px-10 py-4 text-base font-semibold text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-900/30"
@@ -174,9 +174,9 @@ export default function LandingPage() {
             <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-600">
               <Zap className="h-3 w-3 text-white" />
             </div>
-            <span className="text-xs font-bold text-zinc-400">TradeForge</span>
+            <span className="text-xs font-bold text-zinc-400">Tradezory</span>
           </div>
-          <p className="text-xs text-zinc-600">© {new Date().getFullYear()} TradeForge. All rights reserved.</p>
+          <p className="text-xs text-zinc-600">© {new Date().getFullYear()} Tradezory. All rights reserved.</p>
         </div>
       </footer>
     </div>

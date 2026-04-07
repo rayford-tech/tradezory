@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TradeForge — Forge Your Edge",
+  title: "Tradezory — Trade Smarter",
   description:
     "The professional trading journal and analytics platform for serious traders. Log trades, review performance, track mistakes, and build your edge.",
 };
