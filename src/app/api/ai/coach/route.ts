@@ -37,13 +37,20 @@ ${setups.length > 0 ? `- Setup tags: ${setups.join(", ")}` : ""}
 ${mistakes.length > 0 ? `- Mistake tags: ${mistakes.join(", ")}` : ""}
 `.trim();
 
-  const feedback = await callAI({
-    system:
-      "You are a concise trading coach. Review this trade and give exactly 3 short coaching observations numbered 1, 2, 3. Each observation is max 2 sentences. Focus on execution quality, psychology, and process — not just outcome. Be direct and constructive.",
-    user: context,
-    tier: "fast",
-    maxTokens: 300,
-  });
-
-  return NextResponse.json({ feedback });
+  try {
+    const feedback = await callAI({
+      system:
+        "You are a concise trading coach. Review this trade and give exactly 3 short coaching observations numbered 1, 2, 3. Each observation is max 2 sentences. Focus on execution quality, psychology, and process — not just outcome. Be direct and constructive.",
+      user: context,
+      tier: "fast",
+      maxTokens: 300,
+    });
+    return NextResponse.json({ feedback });
+  } catch (err: any) {
+    console.error("AI coach error:", err?.message ?? err);
+    return NextResponse.json(
+      { error: err?.message ?? "AI unavailable" },
+      { status: 503 }
+    );
+  }
 }

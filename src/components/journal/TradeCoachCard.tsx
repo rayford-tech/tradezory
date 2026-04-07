@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bot } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Bot, RefreshCw } from "lucide-react";
 
 interface TradeCoachCardProps {
   tradeId: string;
@@ -10,19 +10,32 @@ interface TradeCoachCardProps {
 export function TradeCoachCard({ tradeId }: TradeCoachCardProps) {
   const [feedback, setFeedback] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    setFeedback("");
     fetch("/api/ai/coach", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tradeId }),
     })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((r) =>
+        r.ok
+          ? r.json()
+          : r.json().then((d) => Promise.reject(d.error ?? `Error ${r.status}`))
+      )
       .then((d) => setFeedback(d.feedback ?? ""))
-      .catch(() => setError(true))
+      .catch((msg) =>
+        setError(typeof msg === "string" ? msg : "AI coach unavailable — try refreshing")
+      )
       .finally(() => setLoading(false));
   }, [tradeId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const observations = feedback
     .split(/\n+/)
@@ -35,7 +48,7 @@ export function TradeCoachCard({ tradeId }: TradeCoachCardProps) {
         <Bot className="h-4 w-4 text-indigo-400" />
         <h2 className="text-sm font-semibold text-zinc-200">AI Coach</h2>
         <span className="rounded-full bg-indigo-600/20 px-2 py-0.5 text-[10px] font-medium text-indigo-400 border border-indigo-500/20">
-          Claude
+          AI
         </span>
       </div>
 
@@ -50,7 +63,15 @@ export function TradeCoachCard({ tradeId }: TradeCoachCardProps) {
           ))}
         </div>
       ) : error ? (
-        <p className="text-xs text-zinc-500">AI coach unavailable — try refreshing or contact support</p>
+        <div>
+          <p className="text-xs text-zinc-500">{error}</p>
+          <button
+            onClick={load}
+            className="mt-2 flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+          >
+            <RefreshCw className="h-3 w-3" /> Retry
+          </button>
+        </div>
       ) : (
         <div className="space-y-3">
           {observations.map((obs, i) => (

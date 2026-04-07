@@ -120,6 +120,20 @@ export async function POST(req: NextRequest) {
     create: { ...tradeData, userId: account.userId, accountId },
   });
 
+  // Clean up old EA v1 records that have entry=exit price (bad format from old EA)
+  if (isClosingDeal) {
+    await db.trade.deleteMany({
+      where: {
+        userId: account.userId,
+        accountId,
+        instrument: tradeData.instrument,
+        id: { not: trade.id },
+        entryPrice: tradeData.entryPrice,
+        exitPrice: tradeData.entryPrice,
+      },
+    });
+  }
+
   // Create copy signals only on first insert (not updates)
   const isNew = trade.openTime.getTime() === openTime.getTime(); // heuristic: same openTime means just created
   if (isNew) {
