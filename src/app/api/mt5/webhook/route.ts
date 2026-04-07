@@ -93,8 +93,8 @@ export async function POST(req: NextRequest) {
       : "FOREX" as const,
     direction: mapMT5Type(payload.type),
     entryPrice: payload.openPrice,
-    // For closing deals, openPrice IS the exit price in MT5's deal model
-    exitPrice: isClosingDeal ? payload.openPrice : (payload.closePrice ?? null),
+    // closePrice = explicit exit price (new EA format); fallback to openPrice for legacy EA payloads
+    exitPrice: isClosingDeal ? (payload.closePrice ?? payload.openPrice) : (payload.closePrice ?? null),
     stopLoss: payload.sl || null,
     takeProfit: payload.tp || null,
     lotSize: payload.volume,

@@ -8,60 +8,88 @@
 // 1. Copy this file to: MT5_DATA_FOLDER\MQL5\Experts\Tradezory_EA.mq5
 // 2. In MT5: Tools → Options → Expert Advisors → Allow WebRequests
 //    Add your Tradezory URL (e.g. https://yourapp.com)
-// 3. Compile (F7) and drag onto any chart
+// 3. Compile (F7) and drag onto ONE chart only
 // 4. Set the input parameters below
+//
+// HISTORICAL BACKFILL:
+// Set SendHistoricalOnInit = true, attach to ONE chart, wait for completion,
+// then set back to false to avoid re-sending on restarts.
 //
 //+------------------------------------------------------------------+
 
 #property copyright "Tradezory"
 #property link      "https://tradezory.com"
-#property version   "1.10"
+#property version   "2.00"
 
 #include <Trade\Trade.mqh>
 
 input string   WebhookURL           = "https://your-tradezory-url.com/api/mt5/webhook";
-input string   AccountID            = "your-trading-account-id";   // Trading account ID from Tradezory settings
-input string   HMACSecret           = "your-mt5-webhook-secret";   // Must match MT5_WEBHOOK_SECRET in .env
-input bool     SendOnOpen           = true;    // Send webhook when trade opens
-input bool     SendOnClose          = true;    // Send webhook when trade closes
-input bool     SendOnModify         = false;   // Send webhook when SL/TP modified
-input int      HttpTimeout          = 5000;    // Request timeout (ms)
-input bool     SendHistoricalOnInit = false;   // Set true ONCE to backfill history, then set back to false
-input datetime HistoricalSyncFrom   = 0;       // Backfill start date (0 = all history)
+input string   AccountID            = "your-trading-account-id";
+input string   HMACSecret           = "your-mt5-webhook-secret";
+input bool     SendOnOpen           = true;
+input bool     SendOnClose          = true;
+input int      HttpTimeout          = 5000;
+input bool     SendHistoricalOnInit = false;  // Set true ONCE to backfill, then back to false
+input datetime HistoricalSyncFrom   = 0;      // 0 = all history
 
 //+------------------------------------------------------------------+
 //| Compute signature: "<secret>|<timestamp>"                         |
 //+------------------------------------------------------------------+
-// NOTE: MQL5 does not have native HMAC-SHA256.
-// Uses a timestamp-based token matching the server's verifySignature().
-string ComputeSignature(string body, string secret)
+string ComputeSignature(string secret)
 {
    long ts = TimeCurrent();
-   string token = secret + "|" + IntegerToString(ts);
-   return token;
+   return secret + "|" + IntegerToString(ts);
 }
 
 //+------------------------------------------------------------------+
-//| Build JSON payload from a deal ticket                             |
+//| Find the opening deal for a position (DEAL_ENTRY_IN)              |
+//| Returns false if not found.                                       |
 //+------------------------------------------------------------------+
-string BuildPayload(ulong ticket, bool isClose)
+bool FindEntryDeal(ulong posId,
+                   ulong  &outTicket,
+                   string &outDirection,
+                   double &outPrice,
+                   string &outTimeStr)
+{
+   int total = HistoryDealsTotal();
+   for(int i = 0; i < total; i++)
+   {
+      ulong t = HistoryDealGetTicket(i);
+      if(t == 0) continue;
+      if((ulong)HistoryDealGetInteger(t, DEAL_POSITION_ID) != posId) continue;
+      if(HistoryDealGetInteger(t, DEAL_ENTRY) != DEAL_ENTRY_IN) continue;
+
+      long dt = HistoryDealGetInteger(t, DEAL_TYPE);
+      if(dt != DEAL_TYPE_BUY && dt != DEAL_TYPE_SELL) continue;
+
+      outTicket    = t;
+      outDirection = (dt == DEAL_TYPE_BUY) ? "BUY" : "SELL";
+      outPrice     = HistoryDealGetDouble(t, DEAL_PRICE);
+      datetime et  = (datetime)HistoryDealGetInteger(t, DEAL_TIME);
+      outTimeStr   = TimeToString(et, TIME_DATE|TIME_SECONDS);
+      return true;
+   }
+   return false;
+}
+
+//+------------------------------------------------------------------+
+//| Build JSON for an OPENING deal                                    |
+//+------------------------------------------------------------------+
+string BuildOpenPayload(ulong posId, ulong ticket)
 {
    HistoryDealSelect(ticket);
 
-   string symbol     = HistoryDealGetString(ticket, DEAL_SYMBOL);
-   int    dealType   = (int)HistoryDealGetInteger(ticket, DEAL_TYPE);
-   double volume     = HistoryDealGetDouble(ticket, DEAL_VOLUME);
-   double price      = HistoryDealGetDouble(ticket, DEAL_PRICE);
-   double profit     = HistoryDealGetDouble(ticket, DEAL_PROFIT);
-   double commission = HistoryDealGetDouble(ticket, DEAL_COMMISSION);
-   double swap       = HistoryDealGetDouble(ticket, DEAL_SWAP);
-   string comment    = HistoryDealGetString(ticket, DEAL_COMMENT);
-   datetime time     = (datetime)HistoryDealGetInteger(ticket, DEAL_TIME);
+   string symbol    = HistoryDealGetString(ticket, DEAL_SYMBOL);
+   int    dealType  = (int)HistoryDealGetInteger(ticket, DEAL_TYPE);
+   double volume    = HistoryDealGetDouble(ticket, DEAL_VOLUME);
+   double price     = HistoryDealGetDouble(ticket, DEAL_PRICE);
+   datetime time    = (datetime)HistoryDealGetInteger(ticket, DEAL_TIME);
+   string comment   = HistoryDealGetString(ticket, DEAL_COMMENT);
 
    string direction = (dealType == DEAL_TYPE_BUY) ? "BUY" : "SELL";
+   string openTimeStr = TimeToString(time, TIME_DATE|TIME_SECONDS);
 
-   // Attempt to get SL/TP from the associated position
-   ulong posId = HistoryDealGetInteger(ticket, DEAL_POSITION_ID);
+   // SL/TP available from the active position
    double sl = 0, tp = 0;
    if(PositionSelectByTicket(posId))
    {
@@ -69,22 +97,65 @@ string BuildPayload(ulong ticket, bool isClose)
       tp = PositionGetDouble(POSITION_TP);
    }
 
-   string timeStr    = TimeToString(time, TIME_DATE|TIME_SECONDS);
-   string closeTimeStr = isClose ? timeStr : "";
-
-   string json = StringFormat(
-      "{\"ticket\":%d,\"symbol\":\"%s\",\"type\":\"%s\","
+   return StringFormat(
+      "{\"ticket\":%I64u,\"symbol\":\"%s\",\"type\":\"%s\","
       "\"volume\":%.2f,\"openPrice\":%.5f,\"sl\":%.5f,\"tp\":%.5f,"
-      "\"openTime\":\"%s\",\"closeTime\":\"%s\","
-      "\"profit\":%.2f,\"commission\":%.2f,\"swap\":%.2f,"
-      "\"comment\":\"%s\"}",
-      (int)ticket, symbol, direction,
+      "\"openTime\":\"%s\",\"closeTime\":\"\","
+      "\"profit\":0,\"commission\":0,\"swap\":0,\"comment\":\"%s\"}",
+      posId, symbol, direction,
       volume, price, sl, tp,
-      timeStr, closeTimeStr,
+      openTimeStr, comment
+   );
+}
+
+//+------------------------------------------------------------------+
+//| Build JSON for a CLOSING deal (complete trade with entry+exit)    |
+//+------------------------------------------------------------------+
+string BuildClosePayload(ulong posId, ulong closeTicket)
+{
+   HistoryDealSelect(closeTicket);
+
+   string symbol     = HistoryDealGetString(closeTicket, DEAL_SYMBOL);
+   int    closeType  = (int)HistoryDealGetInteger(closeTicket, DEAL_TYPE);
+   double volume     = HistoryDealGetDouble(closeTicket, DEAL_VOLUME);
+   double closePrice = HistoryDealGetDouble(closeTicket, DEAL_PRICE);
+   datetime closeTime= (datetime)HistoryDealGetInteger(closeTicket, DEAL_TIME);
+   double profit     = HistoryDealGetDouble(closeTicket, DEAL_PROFIT);
+   double commission = HistoryDealGetDouble(closeTicket, DEAL_COMMISSION);
+   double swap       = HistoryDealGetDouble(closeTicket, DEAL_SWAP);
+   string comment    = HistoryDealGetString(closeTicket, DEAL_COMMENT);
+
+   // Position direction is the OPPOSITE of the closing deal type:
+   // closing BUY deal = was a SELL position; closing SELL deal = was a BUY position
+   string direction = (closeType == DEAL_TYPE_BUY) ? "SELL" : "BUY";
+   string closeTimeStr = TimeToString(closeTime, TIME_DATE|TIME_SECONDS);
+
+   // Find matching entry deal for entry price, time, and SL/TP
+   ulong  entryTicket = 0;
+   string entryDirection = direction;
+   double entryPrice  = closePrice;  // fallback
+   string entryTimeStr = closeTimeStr; // fallback
+   double sl = 0, tp = 0;
+
+   if(FindEntryDeal(posId, entryTicket, entryDirection, entryPrice, entryTimeStr))
+   {
+      direction = entryDirection; // use direction from entry deal (more reliable)
+      HistoryDealSelect(entryTicket);
+      // Try to retrieve SL/TP stored in entry deal's position snapshot via magic/comment
+      // (position is closed, PositionSelectByTicket won't work)
+      HistoryDealSelect(closeTicket); // restore context to close deal
+   }
+
+   return StringFormat(
+      "{\"ticket\":%I64u,\"symbol\":\"%s\",\"type\":\"%s\","
+      "\"volume\":%.2f,\"openPrice\":%.5f,\"closePrice\":%.5f,\"sl\":%.5f,\"tp\":%.5f,"
+      "\"openTime\":\"%s\",\"closeTime\":\"%s\","
+      "\"profit\":%.2f,\"commission\":%.2f,\"swap\":%.2f,\"comment\":\"%s\"}",
+      posId, symbol, direction,
+      volume, entryPrice, closePrice, sl, tp,
+      entryTimeStr, closeTimeStr,
       profit, commission, swap, comment
    );
-
-   return json;
 }
 
 //+------------------------------------------------------------------+
@@ -92,7 +163,7 @@ string BuildPayload(ulong ticket, bool isClose)
 //+------------------------------------------------------------------+
 bool SendWebhook(string payload)
 {
-   string sig = ComputeSignature(payload, HMACSecret);
+   string sig = ComputeSignature(HMACSecret);
 
    char   postData[];
    char   result[];
@@ -119,72 +190,81 @@ bool SendWebhook(string payload)
 
    if(res == -1)
    {
-      int err = GetLastError();
-      Print("Tradezory webhook error: ", err, " — Check WebRequests URL is whitelisted");
+      Print("Tradezory webhook error: ", GetLastError(), " — Check WebRequests URL is whitelisted");
       return false;
    }
-
    if(res != 200 && res != 201)
    {
-      Print("Tradezory webhook returned HTTP ", res, " for ticket");
+      Print("Tradezory webhook HTTP ", res);
       return false;
    }
-
    return true;
 }
 
 //+------------------------------------------------------------------+
-//| Backfill historical closed deals on EA startup                    |
+//| Backfill historical closed positions on startup                   |
 //+------------------------------------------------------------------+
 void SyncHistoricalDeals()
 {
    datetime fromTime = (HistoricalSyncFrom > 0) ? HistoricalSyncFrom : 0;
-   datetime toTime   = TimeCurrent();
-
-   if(!HistorySelect(fromTime, toTime))
+   if(!HistorySelect(fromTime, TimeCurrent()))
    {
-      Print("Tradezory: Failed to load deal history for backfill");
+      Print("Tradezory: Failed to load deal history");
       return;
    }
 
    int total = HistoryDealsTotal();
-   Print("Tradezory: Starting historical backfill — ", total, " deals found in history");
+   Print("Tradezory: Starting historical backfill — ", total, " deals in history");
 
-   int sent = 0;
-   int skipped = 0;
+   int sent = 0, skipped = 0;
 
    for(int i = 0; i < total; i++)
    {
       ulong ticket = HistoryDealGetTicket(i);
       if(ticket == 0) { skipped++; continue; }
 
-      // Only process regular trade deals (not balance, credit, etc.)
-      long dealType = HistoryDealGetInteger(ticket, DEAL_TYPE);
+      long dealType  = HistoryDealGetInteger(ticket, DEAL_TYPE);
       if(dealType != DEAL_TYPE_BUY && dealType != DEAL_TYPE_SELL) { skipped++; continue; }
 
       long dealEntry = HistoryDealGetInteger(ticket, DEAL_ENTRY);
-      bool isOpen  = (dealEntry == DEAL_ENTRY_IN);
-      bool isClose = (dealEntry == DEAL_ENTRY_OUT || dealEntry == DEAL_ENTRY_INOUT);
+      ulong posId    = (ulong)HistoryDealGetInteger(ticket, DEAL_POSITION_ID);
 
-      if(!isOpen && !isClose) { skipped++; continue; }
-
-      if((isOpen && SendOnOpen) || (isClose && SendOnClose))
+      if(dealEntry == DEAL_ENTRY_OUT || dealEntry == DEAL_ENTRY_INOUT)
       {
-         if(SendWebhook(BuildPayload(ticket, isClose)))
+         // Send complete closed trade (entry+exit) using position ID as ticket
+         if(SendOnClose && SendWebhook(BuildClosePayload(posId, ticket)))
             sent++;
          else
             skipped++;
-
-         // Pace requests to avoid server overload (50ms between sends)
-         Sleep(50);
+         Sleep(80);
+      }
+      else if(dealEntry == DEAL_ENTRY_IN)
+      {
+         // Only send open entries if there is NO corresponding close deal yet
+         // (i.e. the position is still open)
+         bool hasClose = false;
+         for(int j = i + 1; j < total; j++)
+         {
+            ulong t2 = HistoryDealGetTicket(j);
+            if(t2 == 0) continue;
+            if((ulong)HistoryDealGetInteger(t2, DEAL_POSITION_ID) != posId) continue;
+            long e2 = HistoryDealGetInteger(t2, DEAL_ENTRY);
+            if(e2 == DEAL_ENTRY_OUT || e2 == DEAL_ENTRY_INOUT) { hasClose = true; break; }
+         }
+         if(!hasClose && SendOnOpen)
+         {
+            if(SendWebhook(BuildOpenPayload(posId, ticket))) sent++;
+            else skipped++;
+            Sleep(80);
+         }
       }
    }
 
-   Print("Tradezory: Historical backfill complete — sent: ", sent, ", skipped: ", skipped);
+   Print("Tradezory: Backfill complete — sent: ", sent, ", skipped: ", skipped);
 }
 
 //+------------------------------------------------------------------+
-//| Trade event handler (real-time sync)                              |
+//| Trade event handler (real-time)                                   |
 //+------------------------------------------------------------------+
 void OnTrade()
 {
@@ -197,8 +277,12 @@ void OnTrade()
       ulong ticket = HistoryDealGetTicket(i);
       if(ticket == 0) continue;
 
-      long entry = HistoryDealGetInteger(ticket, DEAL_ENTRY);
-      long time  = HistoryDealGetInteger(ticket, DEAL_TIME);
+      long   entry   = HistoryDealGetInteger(ticket, DEAL_ENTRY);
+      long   time    = HistoryDealGetInteger(ticket, DEAL_TIME);
+      long   dealType= HistoryDealGetInteger(ticket, DEAL_TYPE);
+      ulong  posId   = (ulong)HistoryDealGetInteger(ticket, DEAL_POSITION_ID);
+
+      if(dealType != DEAL_TYPE_BUY && dealType != DEAL_TYPE_SELL) continue;
 
       // Only process recent deals (last 10 seconds)
       if(TimeCurrent() - (datetime)time > 10) continue;
@@ -206,9 +290,15 @@ void OnTrade()
       bool isOpen  = (entry == DEAL_ENTRY_IN);
       bool isClose = (entry == DEAL_ENTRY_OUT || entry == DEAL_ENTRY_INOUT);
 
-      if((isOpen && SendOnOpen) || (isClose && SendOnClose))
+      if(isOpen && SendOnOpen)
+         SendWebhook(BuildOpenPayload(posId, ticket));
+      else if(isClose && SendOnClose)
       {
-         SendWebhook(BuildPayload(ticket, isClose));
+         // Need full history to find entry deal — expand window
+         HistorySelect(0, TimeCurrent());
+         SendWebhook(BuildClosePayload(posId, ticket));
+         // Restore recent window for rest of loop
+         HistorySelect(TimeCurrent() - 60, TimeCurrent() + 60);
       }
    }
 }
@@ -218,7 +308,7 @@ void OnTrade()
 //+------------------------------------------------------------------+
 int OnInit()
 {
-   Print("Tradezory EA v1.10 initialized. Webhook: ", WebhookURL);
+   Print("Tradezory EA v2.00 initialized. Webhook: ", WebhookURL);
    Print("Account ID: ", AccountID);
 
    if(SendHistoricalOnInit)
