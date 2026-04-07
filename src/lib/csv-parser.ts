@@ -112,6 +112,98 @@ function inferAssetClass(instrument: string): AssetClass {
   return "FOREX";
 }
 
+/**
+ * Returns true if the content looks like an MT5 "Save as Report → Detailed Report" CSV.
+ * These files start with "Trade History Report" as the first cell.
+ */
+export function isMT5HistoryReport(content: string): boolean {
+  return content.trimStart().startsWith("Trade History Report");
+}
+
+/**
+ * Parses an MT5 Detailed Report CSV directly, without column-name mapping.
+ *
+ * MT5 exports a multi-section report where the Positions section has 21 columns
+ * but the header row only lists 13 names (misaligned). We read by column index:
+ *   0=OpenTime  1=Ticket  2=Symbol  3=Type  4-11=(empty padding)
+ *   12=Volume   13=OpenPrice  14=SL  15=TP
+ *   16=CloseTime  17=ClosePrice  18=Commission  19=Swap  20=Profit
+ */
+export function parseMT5HistoryReport(csvContent: string): ParsedTrade[] {
+  const result = Papa.parse<string[]>(csvContent, {
+    header: false,
+    skipEmptyLines: false,
+  });
+
+  const rows = result.data as string[][];
+  const trades: ParsedTrade[] = [];
+
+  // Find the "Positions" section
+  let dataStart = -1;
+  let dataEnd = rows.length;
+
+  for (let i = 0; i < rows.length; i++) {
+    const cell = rows[i][0]?.trim();
+    if (cell === "Positions" && dataStart === -1) {
+      dataStart = i + 2; // skip section header + column label row
+    } else if (dataStart !== -1 && (cell === "Orders" || cell === "Deals")) {
+      dataEnd = i;
+      break;
+    }
+  }
+
+  if (dataStart === -1) return trades;
+
+  for (let i = dataStart; i < dataEnd; i++) {
+    const row = rows[i];
+    const openTimeStr = row[0]?.trim();
+
+    // Data rows start with a datetime: YYYY.MM.DD HH:MM:SS
+    if (!openTimeStr || !/^\d{4}\.\d{2}\.\d{2}/.test(openTimeStr)) continue;
+
+    const ticket = row[1]?.trim();
+    const symbol = row[2]?.trim();
+    const type = row[3]?.trim();
+    if (!symbol || !type) continue;
+
+    const openPrice = parseNum(row[13]);
+    if (!openPrice) continue;
+
+    const openTime = parseDateTime(openTimeStr);
+    if (!openTime) continue;
+
+    const closeTimeStr = row[16]?.trim();
+    const closeTime = closeTimeStr ? parseDateTime(closeTimeStr) : null;
+    const commission = parseNum(row[18]);
+    const swap = parseNum(row[19]);
+    const grossPnl = parseNum(row[20]);
+    const netPnl =
+      grossPnl != null ? grossPnl + (commission ?? 0) + (swap ?? 0) : null;
+
+    trades.push({
+      instrument: symbol.toUpperCase(),
+      assetClass: inferAssetClass(symbol),
+      direction: parseDirection(type),
+      entryPrice: openPrice,
+      exitPrice: parseNum(row[17]),
+      stopLoss: parseNum(row[14]),
+      takeProfit: parseNum(row[15]),
+      lotSize: parseNum(row[12]),
+      grossPnl,
+      netPnl,
+      commission,
+      swap,
+      openTime,
+      closeTime,
+      status: closeTime ? "CLOSED" : "OPEN",
+      externalId: ticket || null,
+      brokerMetadata: Object.fromEntries(row.map((v, idx) => [String(idx), v])),
+    });
+  }
+
+  return trades;
+}
+
 export function parseCsv(content: string): { headers: string[]; rows: CsvRow[] } {
   const result = Papa.parse<CsvRow>(content, {
     header: true,

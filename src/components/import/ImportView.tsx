@@ -2,7 +2,8 @@
 
 import { useState, useRef } from "react";
 import type { TradingAccount } from "@/types";
-import { parseCsv, MT5_COLUMN_TEMPLATE, GENERIC_TEMPLATE } from "@/lib/csv-parser";
+import { parseCsv, MT5_COLUMN_TEMPLATE, GENERIC_TEMPLATE, isMT5HistoryReport, parseMT5HistoryReport } from "@/lib/csv-parser";
+import type { ParsedTrade } from "@/lib/csv-parser";
 import { Upload, FileText, CheckCircle, AlertCircle, Download, ChevronDown, ChevronUp } from "lucide-react";
 
 const SYSTEM_FIELDS = [
@@ -43,6 +44,8 @@ export function ImportView({ accounts }: ImportViewProps) {
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [isMT5Report, setIsMT5Report] = useState(false);
+  const [mt5Trades, setMt5Trades] = useState<ParsedTrade[]>([]);
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -51,10 +54,19 @@ export function ImportView({ accounts }: ImportViewProps) {
     reader.onload = (ev) => {
       const content = ev.target?.result as string;
       setCsvContent(content);
-      const { headers, rows } = parseCsv(content);
-      setHeaders(headers);
-      setRows(rows);
-      setStep("map");
+      if (isMT5HistoryReport(content)) {
+        const parsed = parseMT5HistoryReport(content);
+        setIsMT5Report(true);
+        setMt5Trades(parsed);
+        setStep("confirm");
+      } else {
+        setIsMT5Report(false);
+        setMt5Trades([]);
+        const { headers, rows } = parseCsv(content);
+        setHeaders(headers);
+        setRows(rows);
+        setStep("map");
+      }
     };
     reader.readAsText(file);
   }
@@ -113,9 +125,9 @@ export function ImportView({ accounts }: ImportViewProps) {
         <ol className="text-xs text-zinc-400 space-y-1 list-decimal list-inside">
           <li>Open MetaTrader 5 → View → Terminal → History tab</li>
           <li>Right-click anywhere → Select "All History"</li>
-          <li>Right-click → Save as Report → choose Detailed Report</li>
-          <li>Open the .htm file in Excel, export as CSV, then upload here</li>
-          <li>Select the <span className="text-amber-400 font-medium">MT5 Template</span> below to auto-map columns</li>
+          <li>Right-click → Save as Report → choose <span className="text-amber-400 font-medium">Detailed Report</span></li>
+          <li>Save the file as <span className="text-amber-400 font-medium">.csv</span> (not .htm) and upload it here</li>
+          <li>Columns are mapped automatically — no manual configuration needed</li>
         </ol>
         <a
           href="/csv-templates/mt5-template.csv"
@@ -159,39 +171,81 @@ export function ImportView({ accounts }: ImportViewProps) {
                   <option value="BACKTEST">Backtest</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Template</label>
-                <select value={template} onChange={(e) => applyTemplate(e.target.value)} className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:outline-none">
-                  <option value="none">Manual</option>
-                  <option value="mt5">MT5 Detailed Report</option>
-                  <option value="generic">Generic CSV</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-zinc-200">Column Mapping</h2>
-            <p className="text-xs text-zinc-500">Map your CSV columns to Tradezory fields. Required fields are marked with *.</p>
-            <div className="grid grid-cols-2 gap-3">
-              {SYSTEM_FIELDS.map(({ key, label }) => (
-                <div key={key}>
-                  <label className="block text-xs text-zinc-400 mb-1">{label}</label>
-                  <select
-                    value={mapping[key] ?? ""}
-                    onChange={(e) => setMapping((m) => ({ ...m, [key]: e.target.value }))}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
-                  >
-                    <option value="">— skip —</option>
-                    {headers.map((h) => <option key={h} value={h}>{h}</option>)}
+              {!isMT5Report && (
+                <div>
+                  <label className="block text-xs text-zinc-400 mb-1.5">Template</label>
+                  <select value={template} onChange={(e) => applyTemplate(e.target.value)} className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:outline-none">
+                    <option value="none">Manual</option>
+                    <option value="mt5">MT5 Detailed Report</option>
+                    <option value="generic">Generic CSV</option>
                   </select>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
-          {/* Preview */}
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden">
+          {isMT5Report ? (
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
+                <h2 className="text-sm font-semibold text-emerald-400">MT5 Trade History Report detected</h2>
+              </div>
+              <p className="text-xs text-zinc-400">All columns mapped automatically. {mt5Trades.length} closed trade{mt5Trades.length !== 1 ? "s" : ""} found in the Positions section.</p>
+              {mt5Trades.length > 0 && (
+                <div className="overflow-x-auto rounded-lg border border-zinc-800">
+                  <table className="text-xs w-full">
+                    <thead>
+                      <tr className="border-b border-zinc-800 bg-zinc-900">
+                        {["Symbol","Dir","Entry","Exit","Volume","P&L","Open Time","Close Time"].map((h) => (
+                          <th key={h} className="px-3 py-2 text-left text-zinc-500 whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mt5Trades.slice(0, 5).map((t, i) => (
+                        <tr key={i} className="border-b border-zinc-800/60">
+                          <td className="px-3 py-2 text-zinc-200 whitespace-nowrap font-medium">{t.instrument}</td>
+                          <td className={`px-3 py-2 whitespace-nowrap font-medium ${t.direction === "BUY" ? "text-emerald-400" : "text-red-400"}`}>{t.direction}</td>
+                          <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{t.entryPrice}</td>
+                          <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{t.exitPrice ?? "—"}</td>
+                          <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{t.lotSize ?? "—"}</td>
+                          <td className={`px-3 py-2 whitespace-nowrap font-medium ${(t.grossPnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>{t.grossPnl != null ? `${t.grossPnl >= 0 ? "+" : ""}${t.grossPnl.toFixed(2)}` : "—"}</td>
+                          <td className="px-3 py-2 text-zinc-500 whitespace-nowrap">{t.openTime?.slice(0, 16).replace("T", " ")}</td>
+                          <td className="px-3 py-2 text-zinc-500 whitespace-nowrap">{t.closeTime?.slice(0, 16).replace("T", " ") ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {mt5Trades.length > 5 && (
+                    <p className="px-3 py-2 text-xs text-zinc-600">…and {mt5Trades.length - 5} more</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-3">
+              <h2 className="text-sm font-semibold text-zinc-200">Column Mapping</h2>
+              <p className="text-xs text-zinc-500">Map your CSV columns to Tradezory fields. Required fields are marked with *.</p>
+              <div className="grid grid-cols-2 gap-3">
+                {SYSTEM_FIELDS.map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="block text-xs text-zinc-400 mb-1">{label}</label>
+                    <select
+                      value={mapping[key] ?? ""}
+                      onChange={(e) => setMapping((m) => ({ ...m, [key]: e.target.value }))}
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+                    >
+                      <option value="">— skip —</option>
+                      {headers.map((h) => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Preview — only shown for manual mapping mode */}
+          {!isMT5Report && <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden">
             <button
               onClick={() => setShowPreview(!showPreview)}
               className="flex w-full items-center justify-between px-5 py-3 text-sm font-medium text-zinc-200 hover:bg-zinc-800/50"
@@ -224,7 +278,7 @@ export function ImportView({ accounts }: ImportViewProps) {
                 </table>
               </div>
             )}
-          </div>
+          </div>}
 
           {error && (
             <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400 flex items-center gap-2">
@@ -234,15 +288,15 @@ export function ImportView({ accounts }: ImportViewProps) {
           )}
 
           <div className="flex gap-3">
-            <button onClick={() => { setStep("upload"); setCsvContent(""); setHeaders([]); setRows([]); setMapping({}); }} className="rounded-lg border border-zinc-700 px-4 py-2.5 text-sm text-zinc-400 hover:bg-zinc-800">
+            <button onClick={() => { setStep("upload"); setCsvContent(""); setHeaders([]); setRows([]); setMapping({}); setIsMT5Report(false); setMt5Trades([]); }} className="rounded-lg border border-zinc-700 px-4 py-2.5 text-sm text-zinc-400 hover:bg-zinc-800">
               Start Over
             </button>
             <button
               onClick={doImport}
-              disabled={importing || !mapping.instrument || !mapping.entryPrice || !mapping.openTime}
+              disabled={importing || (!isMT5Report && (!mapping.instrument || !mapping.entryPrice || !mapping.openTime))}
               className="flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-60 transition-colors"
             >
-              {importing ? "Importing..." : `Import ${rows.length} Trades`}
+              {importing ? "Importing..." : `Import ${isMT5Report ? mt5Trades.length : rows.length} Trades`}
             </button>
           </div>
         </div>

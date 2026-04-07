@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { parseCsv, mapRows } from "@/lib/csv-parser";
+import { parseCsv, mapRows, parseMT5HistoryReport, isMT5HistoryReport } from "@/lib/csv-parser";
+import type { ParsedTrade } from "@/lib/csv-parser";
 import { inferSession } from "@/lib/trade-utils";
 import { z } from "zod";
 
@@ -28,8 +29,13 @@ export async function POST(req: NextRequest) {
   });
   if (!account) return NextResponse.json({ error: "Account not found" }, { status: 404 });
 
-  const { rows } = parseCsv(csvContent);
-  const trades = mapRows(rows, mapping as any);
+  let trades: ParsedTrade[];
+  if (isMT5HistoryReport(csvContent)) {
+    trades = parseMT5HistoryReport(csvContent);
+  } else {
+    const { rows } = parseCsv(csvContent);
+    trades = mapRows(rows, mapping as any);
+  }
 
   if (trades.length === 0) {
     return NextResponse.json({ error: "No valid trades found in CSV" }, { status: 400 });
