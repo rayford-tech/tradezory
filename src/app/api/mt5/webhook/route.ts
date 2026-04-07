@@ -126,6 +126,9 @@ export async function POST(req: NextRequest) {
       externalId,
       accountId,
       symbol: payload.symbol,
+      openPrice: payload.openPrice,
+      profit: payload.profit,
+      openTime: payload.openTime,
       error: String(err),
     });
     return NextResponse.json(
@@ -136,34 +139,42 @@ export async function POST(req: NextRequest) {
 
   // Clean up old EA v1 records that have entry=exit price (bad format from old EA)
   if (isClosingDeal) {
-    await db.trade.deleteMany({
-      where: {
-        userId: account.userId,
-        accountId,
-        instrument: tradeData.instrument,
-        id: { not: trade.id },
-        entryPrice: tradeData.entryPrice,
-        exitPrice: tradeData.entryPrice,
-      },
-    });
+    try {
+      await db.trade.deleteMany({
+        where: {
+          userId: account.userId,
+          accountId,
+          instrument: tradeData.instrument,
+          id: { not: trade.id },
+          entryPrice: tradeData.entryPrice,
+          exitPrice: tradeData.entryPrice,
+        },
+      });
+    } catch (err) {
+      console.error("[mt5/webhook] cleanup deleteMany failed", { tradeId: trade.id, error: String(err) });
+    }
   }
 
   // Create copy signals only on first insert (not updates)
-  const follows = await db.copyFollow.findMany({ where: { followedUserId: account.userId } });
-  if (follows.length > 0) {
-    await db.copySignal.createMany({
-      skipDuplicates: true,
-      data: follows.map((f) => ({
-        adminId: f.adminId,
-        sourceTradeId: trade.id,
-        instrument: tradeData.instrument,
-        direction: tradeData.direction,
-        volume: Number(tradeData.lotSize ?? 0.01),
-        openPrice: Number(tradeData.entryPrice),
-        stopLoss: tradeData.stopLoss ? Number(tradeData.stopLoss) : null,
-        takeProfit: tradeData.takeProfit ? Number(tradeData.takeProfit) : null,
-      })),
-    });
+  try {
+    const follows = await db.copyFollow.findMany({ where: { followedUserId: account.userId } });
+    if (follows.length > 0) {
+      await db.copySignal.createMany({
+        skipDuplicates: true,
+        data: follows.map((f) => ({
+          adminId: f.adminId,
+          sourceTradeId: trade.id,
+          instrument: tradeData.instrument,
+          direction: tradeData.direction,
+          volume: Number(tradeData.lotSize ?? 0.01),
+          openPrice: Number(tradeData.entryPrice),
+          stopLoss: tradeData.stopLoss ? Number(tradeData.stopLoss) : null,
+          takeProfit: tradeData.takeProfit ? Number(tradeData.takeProfit) : null,
+        })),
+      });
+    }
+  } catch (err) {
+    console.error("[mt5/webhook] copySignal creation failed", { tradeId: trade.id, error: String(err) });
   }
 
   return NextResponse.json({ success: true, tradeId: trade.id });
