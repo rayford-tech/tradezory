@@ -21,6 +21,7 @@ import {
   Upload,
   X,
   Loader2,
+  MoreHorizontal,
 } from "lucide-react";
 import { TradeForm } from "./TradeForm";
 import { TradeCoachCard } from "./TradeCoachCard";
@@ -37,6 +38,7 @@ export function TradeDetail({ trade, accounts, setupTags, mistakeTags }: TradeDe
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [screenshots, setScreenshots] = useState(trade.screenshots);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -160,13 +162,37 @@ export function TradeDetail({ trade, accounts, setupTags, mistakeTags }: TradeDe
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setEditing(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+          >
             <Pencil className="h-3.5 w-3.5" /> Edit
           </button>
-          <button onClick={deleteTrade} disabled={deleting} className="flex items-center gap-1.5 rounded-lg border border-red-900/50 px-3 py-2 text-sm text-red-400 hover:bg-red-900/20 transition-colors">
-            <Trash2 className="h-3.5 w-3.5" /> Delete
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setMoreOpen((v) => !v)}
+              className="flex items-center justify-center rounded-lg border border-zinc-700 p-2 text-zinc-400 hover:bg-zinc-800 transition-colors"
+              aria-label="More actions"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+            {moreOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setMoreOpen(false)} />
+                <div className="absolute right-0 top-full mt-1.5 z-40 w-44 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl overflow-hidden">
+                  <button
+                    onClick={() => { setMoreOpen(false); deleteTrade(); }}
+                    disabled={deleting}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete Trade
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

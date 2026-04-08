@@ -18,7 +18,7 @@ import {
   Award,
   AlertTriangle,
   BarChart3,
-  Clock,
+  Percent,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -30,7 +30,7 @@ export default async function DashboardPage() {
 
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
-  const [user, trades] = await Promise.all([
+  const [user, trades, defaultAccount] = await Promise.all([
     db.user.findUnique({ where: { id: userId }, select: { timezone: true } }),
     db.trade.findMany({
       where: { userId, openTime: { gte: ninetyDaysAgo } },
@@ -41,10 +41,19 @@ export default async function DashboardPage() {
       },
       orderBy: { openTime: "asc" },
     }),
+    db.tradingAccount.findFirst({
+      where: { userId, isDefault: true },
+      select: { balance: true, currency: true },
+    }),
   ]);
 
   const userTimezone = user?.timezone ?? "UTC";
   const analytics = computeAnalytics(trades as any);
+
+  const accountBalance = defaultAccount?.balance ? Number(defaultAccount.balance) : null;
+  const pnlPct = accountBalance && accountBalance > 0
+    ? (analytics.totalNetPnl / accountBalance) * 100
+    : null;
 
   // Build dayMap for current month only (in user's timezone)
   const nowStr = toUserDate(new Date(), userTimezone);
@@ -94,6 +103,14 @@ export default async function DashboardPage() {
           highlight={pnlHighlight}
           icon={TrendingUp}
           href="/journal"
+        />
+        <KpiCard
+          title="% Return"
+          value={pnlPct !== null ? `${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%` : "—"}
+          subtitle={accountBalance ? `of ${formatCurrency(accountBalance)} balance` : "Set balance in Settings"}
+          highlight={pnlPct !== null ? (pnlPct > 0 ? "green" : pnlPct < 0 ? "red" : "default") : "default"}
+          icon={Percent}
+          href="/settings"
         />
         <KpiCard
           title="Win Rate"
