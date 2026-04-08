@@ -13,8 +13,8 @@ export function AIInsightsCard() {
     setError(false);
     try {
       const res = await fetch("/api/ai/insights", { method: "POST" });
-      if (!res.ok) throw new Error();
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
       setInsights(data.insights ?? []);
     } catch {
       setError(true);
@@ -32,7 +32,7 @@ export function AIInsightsCard() {
           <Sparkles className="h-4 w-4 text-indigo-400" />
           <h2 className="text-sm font-semibold text-zinc-200">AI Insights</h2>
           <span className="rounded-full bg-indigo-600/20 px-2 py-0.5 text-[10px] font-medium text-indigo-400 border border-indigo-500/20">
-            powered by Claude
+            Gemini AI
           </span>
         </div>
         {!loading && (
@@ -58,8 +58,14 @@ export function AIInsightsCard() {
           ))}
         </div>
       ) : error ? (
-        <div className="flex items-center justify-between py-2">
-          <p className="text-xs text-zinc-500">AI insights unavailable — check Settings → MT5 Integration or contact support</p>
+        <div className="py-2 space-y-1.5">
+          <p className="text-xs text-zinc-500">
+            AI insights unavailable — ensure <code className="text-zinc-400">GEMINI_API_KEY</code> is set in <code className="text-zinc-400">.env</code>.{" "}
+            Get a free key at{" "}
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline">
+              aistudio.google.com
+            </a>
+          </p>
           <button onClick={load} className="text-xs text-indigo-400 hover:text-indigo-300">
             Retry
           </button>

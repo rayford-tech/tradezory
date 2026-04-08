@@ -3,18 +3,27 @@
 import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
 import Link from "next/link";
-import { Bell, ChevronDown, LogOut, Settings } from "lucide-react";
+import { Bell, ChevronDown, LogOut, Menu, Settings } from "lucide-react";
+import { useSidebar } from "./SidebarContext";
 import { cn } from "@/lib/utils";
 
 export function TopBar() {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
+  const { toggle } = useSidebar();
 
   const initial = session?.user?.name?.[0]?.toUpperCase() ?? session?.user?.email?.[0]?.toUpperCase() ?? "?";
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm px-6">
       <div className="flex items-center gap-3">
+        <button
+          onClick={toggle}
+          className="p-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors md:hidden"
+          aria-label="Toggle menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
         <h1 className="text-sm text-zinc-400">
           Welcome back,{" "}
           <span className="font-medium text-zinc-100">

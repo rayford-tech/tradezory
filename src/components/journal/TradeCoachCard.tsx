@@ -63,11 +63,23 @@ export function TradeCoachCard({ tradeId }: TradeCoachCardProps) {
           ))}
         </div>
       ) : error ? (
-        <div>
-          <p className="text-xs text-zinc-500">{error}</p>
+        <div className="space-y-1.5">
+          <p className="text-xs text-zinc-500">
+            {error.includes("No AI API key") ? (
+              <>
+                AI coach unavailable — set <code className="text-zinc-400">GEMINI_API_KEY</code> in <code className="text-zinc-400">.env</code>.{" "}
+                Get a free key at{" "}
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline">
+                  aistudio.google.com
+                </a>
+              </>
+            ) : (
+              error
+            )}
+          </p>
           <button
             onClick={load}
-            className="mt-2 flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+            className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
           >
             <RefreshCw className="h-3 w-3" /> Retry
           </button>

@@ -47,18 +47,26 @@ ${topMistake ? `- Most frequent mistake: ${topMistake.name} (${topMistake.count}
 - Avg execution score: ${a.avgExecutionScore > 0 ? a.avgExecutionScore.toFixed(1) + "/10" : "not tracked"}
 `.trim();
 
-  const raw = await callAI({
-    system:
-      "You are a professional trading coach reviewing a trader's statistics. Generate exactly 4 bullet-point insights (one sentence each). Be specific with numbers. Identify patterns, risks, and opportunities. Be direct and actionable. Return only the 4 bullets starting with '•', no intro text, no extra lines.",
-    user: context,
-    tier: "fast",
-    maxTokens: 400,
-  });
-  const insights = raw
-    .split("\n")
-    .map((l) => l.replace(/^[•\-\*]\s*/, "").trim())
-    .filter(Boolean)
-    .slice(0, 4);
+  try {
+    const raw = await callAI({
+      system:
+        "You are a professional trading coach reviewing a trader's statistics. Generate exactly 4 bullet-point insights (one sentence each). Be specific with numbers. Identify patterns, risks, and opportunities. Be direct and actionable. Return only the 4 bullets starting with '•', no intro text, no extra lines.",
+      user: context,
+      tier: "fast",
+      maxTokens: 400,
+    });
+    const insights = raw
+      .split("\n")
+      .map((l) => l.replace(/^[•\-\*]\s*/, "").trim())
+      .filter(Boolean)
+      .slice(0, 4);
 
-  return NextResponse.json({ insights });
+    return NextResponse.json({ insights });
+  } catch (err: any) {
+    console.error("AI insights error:", err?.message ?? err);
+    return NextResponse.json(
+      { error: err?.message ?? "AI unavailable" },
+      { status: 503 }
+    );
+  }
 }

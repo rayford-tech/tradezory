@@ -20,6 +20,7 @@ import {
   Zap,
   Sparkles,
 } from "lucide-react";
+import { useSidebar } from "./SidebarContext";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -43,9 +44,25 @@ const bottomItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { isOpen, close } = useSidebar();
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 flex h-screen w-60 flex-col border-r border-zinc-800 bg-zinc-950">
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={close}
+        />
+      )}
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 z-50 flex h-screen w-60 flex-col border-r border-zinc-800 bg-zinc-950",
+        "transition-transform duration-200",
+        "md:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}
+    >
       {/* Logo */}
       <div className="flex h-16 shrink-0 items-center gap-2.5 px-5 border-b border-zinc-800">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
@@ -114,5 +131,6 @@ export function Sidebar() {
         })}
       </div>
     </aside>
+    </>
   );
 }
