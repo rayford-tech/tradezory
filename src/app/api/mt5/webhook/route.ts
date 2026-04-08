@@ -113,16 +113,18 @@ export async function POST(req: NextRequest) {
     brokerMetadata: payload as any,
   };
 
-  let trade: Awaited<ReturnType<typeof db.trade.upsert>>;
+  // Prisma's upsert uses ON CONFLICT which fails with partial unique indexes (Prisma makes
+  // nullable-column unique indexes partial). Use findFirst + update/create instead.
+  let trade: Awaited<ReturnType<typeof db.trade.update>> | Awaited<ReturnType<typeof db.trade.create>>;
   try {
-    // Atomic upsert — the unique index on (externalId, accountId) prevents race-condition duplicates
-    trade = await db.trade.upsert({
-      where: { externalId_accountId: { externalId, accountId } },
-      update: tradeData,
-      create: { ...tradeData, userId: account.userId, accountId },
-    });
+    const existing = await db.trade.findFirst({ where: { externalId, accountId } });
+    if (existing) {
+      trade = await db.trade.update({ where: { id: existing.id }, data: tradeData });
+    } else {
+      trade = await db.trade.create({ data: { ...tradeData, userId: account.userId, accountId } });
+    }
   } catch (err) {
-    console.error("[mt5/webhook] upsert failed", {
+    console.error("[mt5/webhook] save failed", {
       externalId,
       accountId,
       symbol: payload.symbol,
@@ -132,7 +134,7 @@ export async function POST(req: NextRequest) {
       error: String(err),
     });
     return NextResponse.json(
-      { error: "DB upsert failed", detail: String(err) },
+      { error: "DB save failed", detail: String(err) },
       { status: 500 }
     );
   }
