@@ -38,12 +38,26 @@ export async function callAI(opts: {
 
   if (provider === "gemini") {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODELS[tier],
-      contents: user,
-      config: { systemInstruction: system, maxOutputTokens: maxTokens },
-    });
-    return response.text ?? "";
+    try {
+      const response = await ai.models.generateContent({
+        model: GEMINI_MODELS[tier],
+        contents: user,
+        config: { systemInstruction: system, maxOutputTokens: maxTokens },
+      });
+      return response.text ?? "";
+    } catch (err: any) {
+      // Gemini SDK sometimes throws with the full JSON response body as the message.
+      // Extract the human-readable message if possible.
+      const raw: string = err?.message ?? String(err);
+      try {
+        const parsed = JSON.parse(raw);
+        const msg: string = parsed?.error?.message ?? raw;
+        throw new Error(`Gemini: ${msg}`);
+      } catch (parseErr) {
+        if (parseErr instanceof SyntaxError) throw new Error(`Gemini: ${raw}`);
+        throw parseErr;
+      }
+    }
   }
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -69,11 +83,23 @@ export async function streamAI(opts: {
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }));
-    const stream = await ai.models.generateContentStream({
-      model: GEMINI_MODELS.smart,
-      contents,
-      config: { systemInstruction: system, maxOutputTokens: 500 },
-    });
+    let stream: AsyncIterable<any>;
+    try {
+      stream = await ai.models.generateContentStream({
+        model: GEMINI_MODELS.smart,
+        contents,
+        config: { systemInstruction: system, maxOutputTokens: 500 },
+      });
+    } catch (err: any) {
+      const raw: string = err?.message ?? String(err);
+      try {
+        const parsed = JSON.parse(raw);
+        throw new Error(`Gemini: ${parsed?.error?.message ?? raw}`);
+      } catch (parseErr) {
+        if (parseErr instanceof SyntaxError) throw new Error(`Gemini: ${raw}`);
+        throw parseErr;
+      }
+    }
     return new ReadableStream({
       async start(controller) {
         for await (const chunk of stream) {

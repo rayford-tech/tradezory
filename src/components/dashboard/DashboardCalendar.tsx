@@ -76,7 +76,7 @@ export function DashboardCalendar({ dayMap, timezone }: DashboardCalendarProps) 
             <div
               key={dateStr}
               className={cn(
-                "h-14 rounded-md flex flex-col px-1.5 py-1 relative transition-all",
+                "h-14 rounded-md flex flex-col px-1 py-1 relative transition-all overflow-hidden",
                 data
                   ? data.pnl > 0
                     ? "bg-emerald-500/20 border border-emerald-500/30 hover:bg-emerald-500/30 cursor-pointer"
@@ -90,7 +90,7 @@ export function DashboardCalendar({ dayMap, timezone }: DashboardCalendarProps) 
               {/* Date number — top right */}
               <span
                 className={cn(
-                  "text-[11px] font-semibold self-end leading-none",
+                  "text-[10px] font-semibold self-end leading-none shrink-0",
                   isToday ? "text-indigo-400" : "text-zinc-500"
                 )}
               >
@@ -99,14 +99,14 @@ export function DashboardCalendar({ dayMap, timezone }: DashboardCalendarProps) 
 
               {/* P&L + stats */}
               {data ? (
-                <div className="mt-auto">
+                <div className="mt-auto min-w-0">
                   <p className={cn(
-                    "text-xs font-bold leading-tight",
+                    "text-[9px] font-bold leading-tight truncate",
                     data.pnl > 0 ? "text-emerald-300" : "text-red-400"
                   )}>
                     {data.pnl > 0 ? "+" : ""}{formatCurrency(data.pnl)}
                   </p>
-                  <p className="text-[10px] text-zinc-500 leading-none mt-0.5">
+                  <p className="text-[8px] text-zinc-500 leading-none mt-0.5 truncate">
                     {data.trades}t{winRate !== null ? ` · ${winRate}%` : ""}
                   </p>
                 </div>
