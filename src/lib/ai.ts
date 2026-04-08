@@ -10,8 +10,8 @@ import { GoogleGenAI } from "@google/genai";
 type ModelTier = "fast" | "smart";
 
 const GEMINI_MODELS: Record<ModelTier, string> = {
-  fast: "gemini-2.0-flash",   // stable free tier, low latency — safe for Vercel's 10s timeout
-  smart: "gemini-2.5-flash",  // thinking model — only used for streaming (chat)
+  fast: "gemini-2.5-flash",   // works on free tier for this project
+  smart: "gemini-2.5-flash",  // same model for both tiers
 };
 
 const CLAUDE_MODELS: Record<ModelTier, string> = {
