@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeAnalytics } from "@/lib/analytics";
 import { KpiCard } from "@/components/dashboard/KpiCard";
+import { PnlToggleCard } from "@/components/dashboard/PnlToggleCard";
 import { PnlChart } from "@/components/dashboard/PnlChart";
 import { WinRateDonut } from "@/components/dashboard/WinRateDonut";
 import { DailyPnlBar } from "@/components/dashboard/DailyPnlBar";
@@ -13,7 +14,6 @@ import { DashboardAutoRefresh } from "@/components/dashboard/DashboardAutoRefres
 import { toUserDate } from "@/lib/trade-utils";
 import { formatCurrency, formatPercent, formatRR } from "@/lib/utils";
 import {
-  TrendingUp,
   Target,
   Award,
   AlertTriangle,
@@ -29,7 +29,7 @@ export default async function DashboardPage() {
 
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
-  const [user, trades] = await Promise.all([
+  const [user, trades, defaultAccount] = await Promise.all([
     db.user.findUnique({ where: { id: userId }, select: { timezone: true } }),
     db.trade.findMany({
       where: { userId, openTime: { gte: ninetyDaysAgo } },
@@ -40,7 +40,13 @@ export default async function DashboardPage() {
       },
       orderBy: { openTime: "asc" },
     }),
+    db.tradingAccount.findFirst({
+      where: { userId, isDefault: true },
+      select: { balance: true },
+    }),
   ]);
+
+  const accountBalance = defaultAccount?.balance ? Number(defaultAccount.balance) : null;
 
   const userTimezone = user?.timezone ?? "UTC";
   const analytics = computeAnalytics(trades as any);
@@ -86,13 +92,11 @@ export default async function DashboardPage() {
 
       {/* KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard
-          title="Net P&L"
-          value={formatCurrency(analytics.totalNetPnl)}
-          subtitle={`${analytics.winCount}W · ${analytics.lossCount}L`}
-          highlight={pnlHighlight}
-          icon={TrendingUp}
-          href="/journal"
+        <PnlToggleCard
+          pnl={analytics.totalNetPnl}
+          winCount={analytics.winCount}
+          lossCount={analytics.lossCount}
+          accountBalance={accountBalance}
         />
         <KpiCard
           title="Win Rate"
