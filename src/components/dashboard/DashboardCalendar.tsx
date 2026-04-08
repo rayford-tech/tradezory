@@ -50,7 +50,7 @@ export function DashboardCalendar({ dayMap, timezone }: DashboardCalendarProps) 
       {/* Day-of-week headers */}
       <div className="grid grid-cols-7 mb-1">
         {DAY_HEADERS.map((d) => (
-          <div key={d} className="text-center text-[11px] font-medium text-zinc-600 py-1">
+          <div key={d} className="text-center text-[11px] font-medium text-zinc-500 py-1">
             {d}
           </div>
         ))}
@@ -60,7 +60,7 @@ export function DashboardCalendar({ dayMap, timezone }: DashboardCalendarProps) 
       <div className="grid grid-cols-7 gap-0.5">
         {/* Leading empty cells */}
         {Array.from({ length: startPad }).map((_, i) => (
-          <div key={`pad-${i}`} className="h-14" />
+          <div key={`pad-${i}`} className="h-12 sm:h-14" />
         ))}
 
         {/* Day cells */}
@@ -76,7 +76,7 @@ export function DashboardCalendar({ dayMap, timezone }: DashboardCalendarProps) 
             <div
               key={dateStr}
               className={cn(
-                "h-14 rounded-md flex flex-col px-1 py-1 relative transition-all overflow-hidden",
+                "h-12 sm:h-14 rounded-md flex flex-col px-1 py-1 relative transition-all overflow-hidden",
                 data
                   ? data.pnl > 0
                     ? "bg-emerald-500/20 border border-emerald-500/30 hover:bg-emerald-500/30 cursor-pointer"
@@ -91,7 +91,7 @@ export function DashboardCalendar({ dayMap, timezone }: DashboardCalendarProps) 
               <span
                 className={cn(
                   "text-[10px] font-semibold self-end leading-none shrink-0",
-                  isToday ? "text-indigo-400" : "text-zinc-500"
+                  isToday ? "text-indigo-400" : "text-zinc-400"
                 )}
               >
                 {format(day, "d")}
@@ -101,12 +101,12 @@ export function DashboardCalendar({ dayMap, timezone }: DashboardCalendarProps) 
               {data ? (
                 <div className="mt-auto min-w-0">
                   <p className={cn(
-                    "text-[9px] font-bold leading-tight truncate",
+                    "text-[9px] sm:text-[11px] font-bold leading-tight truncate",
                     data.pnl > 0 ? "text-emerald-300" : "text-red-400"
                   )}>
                     {data.pnl > 0 ? "+" : ""}{formatCurrency(data.pnl)}
                   </p>
-                  <p className="text-[8px] text-zinc-500 leading-none mt-0.5 truncate">
+                  <p className="text-[8px] sm:text-[10px] text-zinc-400 leading-none mt-0.5 truncate">
                     {data.trades}t{winRate !== null ? ` · ${winRate}%` : ""}
                   </p>
                 </div>
