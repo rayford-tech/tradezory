@@ -62,6 +62,33 @@ export function TradeDetail({ trade, accounts, setupTags, mistakeTags }: TradeDe
   const isWin = pnl > 0;
   const isOpen = trade.status === "OPEN";
 
+  // Compute RR from entry / stop loss / take profit when not stored
+  const computedRR = (() => {
+    if (trade.rrRatio) return null; // already have it
+    const entry = Number(trade.entryPrice);
+    const sl = trade.stopLoss ? Number(trade.stopLoss) : null;
+    const tp = trade.takeProfit ? Number(trade.takeProfit) : null;
+    if (!sl || !tp) return null;
+    const risk = Math.abs(entry - sl);
+    const reward = Math.abs(entry - tp);
+    if (risk === 0) return null;
+    if (trade.direction === "BUY" && (sl >= entry || tp <= entry)) return null;
+    if (trade.direction === "SELL" && (sl <= entry || tp >= entry)) return null;
+    return reward / risk;
+  })();
+
+  // Compute risk amount from pnl + price levels when not stored (closed trades only)
+  const computedRiskAmount = (() => {
+    if (trade.riskAmount) return null; // already have it
+    if (!trade.exitPrice || !trade.stopLoss || pnl === 0) return null;
+    const entry = Number(trade.entryPrice);
+    const exit = Number(trade.exitPrice);
+    const sl = Number(trade.stopLoss);
+    const priceMove = Math.abs(entry - exit);
+    if (priceMove === 0) return null;
+    return Math.abs(pnl) * (Math.abs(entry - sl) / priceMove);
+  })();
+
   const tradSetups = trade.tradeTags.filter((t) => t.setupTag).map((t) => t.setupTag!);
   const tradMistakes = trade.tradeTags.filter((t) => t.mistakeTag).map((t) => t.mistakeTag!);
 
@@ -152,7 +179,13 @@ export function TradeDetail({ trade, accounts, setupTags, mistakeTags }: TradeDe
           </div>
           <div>
             <p className="text-xs text-zinc-500 mb-1">RR Ratio</p>
-            <p className="text-xl font-semibold text-zinc-200">{trade.rrRatio ? `${Number(trade.rrRatio).toFixed(2)}R` : "—"}</p>
+            <p className="text-xl font-semibold text-zinc-200">
+              {trade.rrRatio
+                ? `${Number(trade.rrRatio).toFixed(2)}R`
+                : computedRR
+                ? <span title="Calculated from SL/TP prices">{`~${computedRR.toFixed(2)}R`}</span>
+                : "—"}
+            </p>
           </div>
           <div>
             <p className="text-xs text-zinc-500 mb-1">Entry</p>
@@ -185,7 +218,14 @@ export function TradeDetail({ trade, accounts, setupTags, mistakeTags }: TradeDe
                 { label: "Stop Loss", value: trade.stopLoss ? Number(trade.stopLoss).toFixed(5) : "—" },
                 { label: "Take Profit", value: trade.takeProfit ? Number(trade.takeProfit).toFixed(5) : "—" },
                 { label: "Lot Size", value: trade.lotSize ? `${Number(trade.lotSize)} lots` : "—" },
-                { label: "Risk Amount", value: trade.riskAmount ? formatCurrency(Number(trade.riskAmount)) : "—" },
+                {
+                  label: "Risk Amount",
+                  value: trade.riskAmount
+                    ? formatCurrency(Number(trade.riskAmount))
+                    : computedRiskAmount
+                    ? `~${formatCurrency(computedRiskAmount)}`
+                    : "—",
+                },
                 { label: "Gross P&L", value: trade.grossPnl ? formatCurrency(Number(trade.grossPnl)) : "—" },
                 { label: "Commission", value: trade.commission ? formatCurrency(Number(trade.commission)) : "—" },
                 { label: "Session", value: trade.session ? sessionLabel(trade.session) : "—" },
