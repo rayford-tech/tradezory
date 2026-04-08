@@ -66,6 +66,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }
 
+  // Sync account balance from EA on every event
+  if (payload.balance != null && payload.balance > 0) {
+    await db.tradingAccount.update({
+      where: { id: accountId },
+      data: { balance: payload.balance },
+    });
+  }
+
   const openTime = parseMT5Date(payload.openTime);
   const closeTime = parseMT5Date(payload.closeTime ?? "");
 

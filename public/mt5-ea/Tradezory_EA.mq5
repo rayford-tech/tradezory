@@ -101,10 +101,12 @@ string BuildOpenPayload(ulong posId, ulong ticket)
       "{\"ticket\":%I64u,\"symbol\":\"%s\",\"type\":\"%s\","
       "\"volume\":%.2f,\"openPrice\":%.5f,\"sl\":%.5f,\"tp\":%.5f,"
       "\"openTime\":\"%s\",\"closeTime\":\"\","
-      "\"profit\":0,\"commission\":0,\"swap\":0,\"comment\":\"%s\"}",
+      "\"profit\":0,\"commission\":0,\"swap\":0,\"comment\":\"%s\","
+      "\"balance\":%.2f}",
       posId, symbol, direction,
       volume, price, sl, tp,
-      openTimeStr, comment
+      openTimeStr, comment,
+      AccountBalance()
    );
 }
 
@@ -150,11 +152,13 @@ string BuildClosePayload(ulong posId, ulong closeTicket)
       "{\"ticket\":%I64u,\"symbol\":\"%s\",\"type\":\"%s\","
       "\"volume\":%.2f,\"openPrice\":%.5f,\"closePrice\":%.5f,\"sl\":%.5f,\"tp\":%.5f,"
       "\"openTime\":\"%s\",\"closeTime\":\"%s\","
-      "\"profit\":%.2f,\"commission\":%.2f,\"swap\":%.2f,\"comment\":\"%s\"}",
+      "\"profit\":%.2f,\"commission\":%.2f,\"swap\":%.2f,\"comment\":\"%s\","
+      "\"balance\":%.2f}",
       posId, symbol, direction,
       volume, entryPrice, closePrice, sl, tp,
       entryTimeStr, closeTimeStr,
-      profit, commission, swap, comment
+      profit, commission, swap, comment,
+      AccountBalance()
    );
 }
 

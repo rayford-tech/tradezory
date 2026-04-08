@@ -156,4 +156,5 @@ export interface MT5WebhookPayload {
   swap: number;
   comment?: string;
   magic?: number;
+  balance?: number;
 }
