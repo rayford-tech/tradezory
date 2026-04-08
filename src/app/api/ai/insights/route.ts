@@ -50,10 +50,10 @@ ${topMistake ? `- Most frequent mistake: ${topMistake.name} (${topMistake.count}
   try {
     const raw = await callAI({
       system:
-        "You are a professional trading coach reviewing a trader's statistics. Generate exactly 4 bullet-point insights (one sentence each). Be specific with numbers. Identify patterns, risks, and opportunities. Be direct and actionable. Return only the 4 bullets starting with '•', no intro text, no extra lines.",
+        "You are a professional trading coach reviewing a trader's statistics. Output EXACTLY 4 lines. Each line is one bullet starting with '•' followed by one complete sentence. No intro, no header, no blank lines between bullets, nothing after the 4th bullet. Be specific with numbers. Be direct and actionable.",
       user: context,
       tier: "fast",
-      maxTokens: 400,
+      maxTokens: 800,
     });
     const insights = raw
       .split("\n")

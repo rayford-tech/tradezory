@@ -25,7 +25,8 @@ interface TradingCalendarProps {
   timezone: string;
 }
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAYS_FULL = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAYS_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 /** Convert a UTC Date to "yyyy-MM-dd" in the given IANA timezone (client-side). */
 function toUserDateClient(date: Date, timezone: string): string {
@@ -66,11 +67,11 @@ export function TradingCalendar({ dayMap, rawTrades, timezone }: TradingCalendar
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-zinc-50">Trading Calendar</h1>
         <div className="flex items-center gap-2">
           <span className={`text-sm font-semibold ${monthPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-            {format(current, "MMMM yyyy")}: {formatCurrency(monthPnl)}
+            {format(current, "MMM yyyy")}: {formatCurrency(monthPnl)}
           </span>
           <button
             onClick={() => setCurrent((d) => subMonths(d, 1))}
@@ -97,9 +98,10 @@ export function TradingCalendar({ dayMap, rawTrades, timezone }: TradingCalendar
         {/* Calendar Grid */}
         <div className="lg:col-span-2 rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden">
           <div className="grid grid-cols-7 border-b border-zinc-800">
-            {DAYS.map((d) => (
-              <div key={d} className="py-3 text-center text-xs font-medium text-zinc-500">
-                {d}
+            {DAYS_FULL.map((d, i) => (
+              <div key={d} className="py-2 sm:py-3 text-center text-[10px] sm:text-xs font-medium text-zinc-500">
+                <span className="hidden sm:inline">{DAYS_FULL[i]}</span>
+                <span className="sm:hidden">{DAYS_SHORT[i]}</span>
               </div>
             ))}
           </div>
@@ -118,8 +120,7 @@ export function TradingCalendar({ dayMap, rawTrades, timezone }: TradingCalendar
                   key={dateStr}
                   onClick={() => setSelectedDay(isSelected ? null : dateStr)}
                   className={cn(
-                    "min-h-[80px] border-b border-r border-zinc-800/60 p-2 text-left transition-colors",
-                    // Win/loss background fills
+                    "min-h-[70px] border-b border-r border-zinc-800/60 p-1 sm:p-2 text-left transition-colors overflow-hidden",
                     data
                       ? data.pnl > 0
                         ? "bg-emerald-500/10 hover:bg-emerald-500/20"
@@ -127,14 +128,13 @@ export function TradingCalendar({ dayMap, rawTrades, timezone }: TradingCalendar
                         ? "bg-red-500/10 hover:bg-red-500/20"
                         : "hover:bg-zinc-800/40"
                       : "hover:bg-zinc-800/40",
-                    // Selected ring overrides
                     isSelected && "ring-2 ring-inset ring-indigo-500/60",
                     !isSameMonth(day, current) && "opacity-30"
                   )}
                 >
                   <span
                     className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium mb-1",
+                      "flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-[11px] sm:text-xs font-medium mb-1",
                       isToday ? "bg-indigo-600 text-white" : "text-zinc-400"
                     )}
                   >
@@ -144,13 +144,13 @@ export function TradingCalendar({ dayMap, rawTrades, timezone }: TradingCalendar
                     <>
                       <div
                         className={cn(
-                          "text-xs font-semibold",
+                          "text-[10px] sm:text-xs font-semibold truncate",
                           data.pnl > 0 ? "text-emerald-400" : data.pnl < 0 ? "text-red-400" : "text-zinc-400"
                         )}
                       >
                         {data.pnl > 0 ? "+" : ""}{formatCurrency(data.pnl)}
                       </div>
-                      <div className="text-[10px] text-zinc-500 mt-0.5">{data.trades} trade{data.trades !== 1 ? "s" : ""}</div>
+                      <div className="text-[9px] sm:text-[10px] text-zinc-500 mt-0.5 truncate">{data.trades}t</div>
                     </>
                   )}
                 </button>

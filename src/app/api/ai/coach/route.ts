@@ -40,10 +40,10 @@ ${mistakes.length > 0 ? `- Mistake tags: ${mistakes.join(", ")}` : ""}
   try {
     const feedback = await callAI({
       system:
-        "You are a concise trading coach. Review this trade and give exactly 3 short coaching observations numbered 1, 2, 3. Each observation is max 2 sentences. Focus on execution quality, psychology, and process — not just outcome. Be direct and constructive.",
+        "You are a concise trading coach. Output EXACTLY 3 lines. Each line starts with '1.', '2.', or '3.' followed by one observation (max 2 sentences). Focus on execution quality, psychology, and process — not just outcome. Do NOT add any intro, header, or text before '1.' or after '3.'.",
       user: context,
       tier: "fast",
-      maxTokens: 300,
+      maxTokens: 600,
     });
     return NextResponse.json({ feedback });
   } catch (err: any) {
