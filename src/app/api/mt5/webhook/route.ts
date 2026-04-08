@@ -115,13 +115,21 @@ export async function POST(req: NextRequest) {
 
   // Prisma's upsert uses ON CONFLICT which fails with partial unique indexes (Prisma makes
   // nullable-column unique indexes partial). Use findFirst + update/create instead.
+  // On unique constraint violation (concurrent EA backfill race), retry as an update.
   let trade: Awaited<ReturnType<typeof db.trade.update>> | Awaited<ReturnType<typeof db.trade.create>>;
   try {
     const existing = await db.trade.findFirst({ where: { externalId, accountId } });
     if (existing) {
       trade = await db.trade.update({ where: { id: existing.id }, data: tradeData });
     } else {
-      trade = await db.trade.create({ data: { ...tradeData, userId: account.userId, accountId } });
+      try {
+        trade = await db.trade.create({ data: { ...tradeData, userId: account.userId, accountId } });
+      } catch (createErr) {
+        // Another concurrent EA request created the same trade — retry as update
+        const created = await db.trade.findFirst({ where: { externalId, accountId } });
+        if (!created) throw createErr;
+        trade = await db.trade.update({ where: { id: created.id }, data: tradeData });
+      }
     }
   } catch (err) {
     console.error("[mt5/webhook] save failed", {
