@@ -8,21 +8,24 @@ import { cn } from "@/lib/utils";
 
 interface PnlToggleCardProps {
   pnl: number;
+  /** All-time net PnL (all closed trades, not just 90 days) — used for accurate % return. */
+  allTimePnl: number | null;
   winCount: number;
   lossCount: number;
-  /** Current account balance from MT5. Initial capital is derived as balance − pnl. */
+  /** Current account balance. Initial capital is derived as balance − allTimePnl. */
   accountBalance: number | null;
 }
 
-export function PnlToggleCard({ pnl, winCount, lossCount, accountBalance }: PnlToggleCardProps) {
+export function PnlToggleCard({ pnl, allTimePnl, winCount, lossCount, accountBalance }: PnlToggleCardProps) {
   const [showPct, setShowPct] = useState(false);
 
-  // Derive initial capital: current balance minus all P&L accrued
+  // Use all-time PnL (not 90-day) so initial capital = deposit, not a rolling window
+  const effectivePnl = allTimePnl ?? pnl;
   const initialCapital =
-    accountBalance != null && accountBalance > 0 ? accountBalance - pnl : null;
+    accountBalance != null && accountBalance > 0 ? accountBalance - effectivePnl : null;
   const pnlPct =
     initialCapital != null && initialCapital > 0
-      ? (pnl / initialCapital) * 100
+      ? (effectivePnl / initialCapital) * 100
       : null;
 
   const highlight = pnl > 0 ? "green" : pnl < 0 ? "red" : "default";

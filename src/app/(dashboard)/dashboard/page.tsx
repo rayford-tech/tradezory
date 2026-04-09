@@ -29,7 +29,7 @@ export default async function DashboardPage() {
 
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
-  const [user, trades, defaultAccount] = await Promise.all([
+  const [user, trades, defaultAccount, allTimeAggregate] = await Promise.all([
     db.user.findUnique({ where: { id: userId }, select: { timezone: true } }),
     db.trade.findMany({
       where: { userId, openTime: { gte: ninetyDaysAgo } },
@@ -44,9 +44,15 @@ export default async function DashboardPage() {
       where: { userId, isDefault: true },
       select: { balance: true },
     }),
+    // All-time net PnL for accurate % return calculation (avoids 90-day window bias)
+    db.trade.aggregate({
+      where: { userId, status: "CLOSED" },
+      _sum: { netPnl: true },
+    }),
   ]);
 
   const accountBalance = defaultAccount?.balance ? Number(defaultAccount.balance) : null;
+  const allTimeNetPnl = allTimeAggregate._sum.netPnl ? Number(allTimeAggregate._sum.netPnl) : null;
 
   const userTimezone = user?.timezone ?? "UTC";
   const analytics = computeAnalytics(trades as any);
@@ -94,6 +100,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <PnlToggleCard
           pnl={analytics.totalNetPnl}
+          allTimePnl={allTimeNetPnl}
           winCount={analytics.winCount}
           lossCount={analytics.lossCount}
           accountBalance={accountBalance}
