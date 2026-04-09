@@ -322,14 +322,18 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags, mt5Webhoo
 
             <div className="space-y-3">
               <div className="rounded-lg border border-zinc-700 p-4">
-                <p className="text-xs font-semibold text-zinc-300 mb-1">Step 1: Download the EA</p>
-                <p className="text-xs text-zinc-500 mb-2">Download the Tradezory Expert Advisor and place it in your MT5 Experts folder.</p>
+                <p className="text-xs font-semibold text-zinc-300 mb-1">Step 1: Download &amp; place the EA</p>
+                <p className="text-xs text-zinc-500 mb-2">Download the file, then copy it into your MT5 Experts folder: <span className="font-mono text-zinc-400">File → Open Data Folder → MQL5 → Experts</span></p>
                 <a href="/mt5-ea/Tradezory_EA.mq5" download className="inline-flex items-center gap-2 rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-zinc-100 hover:border-zinc-600 transition-colors">
                   ↓ Download Tradezory_EA.mq5
                 </a>
               </div>
+              <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/5 p-4">
+                <p className="text-xs font-semibold text-indigo-300 mb-1">Step 2: Compile in MetaEditor</p>
+                <p className="text-xs text-zinc-400">In MT5 press <span className="font-mono bg-zinc-800 px-1 rounded">F4</span> to open MetaEditor. Open the file, then press <span className="font-mono bg-zinc-800 px-1 rounded">F7</span> to compile. Wait for <span className="text-emerald-400 font-medium">&quot;0 errors&quot;</span> in the Toolbox. Then back in MT5, right-click <strong>Expert Advisors</strong> in the Navigator and click <strong>Refresh</strong> — the EA will appear in the list.</p>
+              </div>
               <div className="rounded-lg border border-zinc-700 p-4">
-                <p className="text-xs font-semibold text-zinc-300 mb-1">Step 2: Configure the EA</p>
+                <p className="text-xs font-semibold text-zinc-300 mb-1">Step 3: Configure the EA</p>
                 <p className="text-xs text-zinc-500 mb-2">Set these parameters in the EA input settings:</p>
                 <div className="space-y-1 font-mono text-xs">
                   <div className="flex gap-2"><span className="text-zinc-500 w-36">WebhookURL:</span><span className="text-indigo-400">{typeof window !== "undefined" ? window.location.origin : "https://yourapp.com"}/api/mt5/webhook</span></div>
@@ -338,8 +342,8 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags, mt5Webhoo
                 </div>
               </div>
               <div className="rounded-lg border border-zinc-700 p-4">
-                <p className="text-xs font-semibold text-zinc-300 mb-1">Step 3: Attach to Chart</p>
-                <p className="text-xs text-zinc-500">Drag the EA onto any chart in MT5. Enable "Allow WebRequests" and add your Tradezory URL in Tools → Options → Expert Advisors.</p>
+                <p className="text-xs font-semibold text-zinc-300 mb-1">Step 4: Attach to Chart</p>
+                <p className="text-xs text-zinc-500">Drag Tradezory_EA from the Navigator onto <strong>one</strong> chart. Enable <em>Allow WebRequests</em> and add your Tradezory URL in <span className="font-mono text-zinc-400">Tools → Options → Expert Advisors</span>.</p>
               </div>
             </div>
 

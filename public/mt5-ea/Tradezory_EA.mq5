@@ -5,11 +5,16 @@
 //+------------------------------------------------------------------+
 //
 // INSTALLATION:
-// 1. Copy this file to: MT5_DATA_FOLDER\MQL5\Experts\Tradezory_EA.mq5
-// 2. In MT5: Tools → Options → Expert Advisors → Allow WebRequests
-//    Add your Tradezory URL (e.g. https://yourapp.com)
-// 3. Compile (F7) and drag onto ONE chart only
-// 4. Set the input parameters below
+// 1. Copy this file to: <MT5 data folder>\MQL5\Experts\
+//    (In MT5: File → Open Data Folder → MQL5 → Experts)
+// 2. Open MetaEditor: press F4 in MT5 (or Tools → MetaQuotes Language Editor)
+//    File → Open → select Tradezory_EA.mq5 → press F7 to Compile
+//    Wait for "0 errors" in the Toolbox at the bottom before continuing.
+// 3. Back in MT5: View → Navigator (Ctrl+N) → right-click Expert Advisors → Refresh
+//    "Tradezory_EA" should now appear in the list.
+// 4. Enable WebRequests: Tools → Options → Expert Advisors → Allow WebRequest for listed URL
+//    Add your Tradezory URL (e.g. https://tradezory.com)
+// 5. Drag Tradezory_EA from Navigator onto ONE chart, fill in the inputs below, click OK.
 //
 // HISTORICAL BACKFILL:
 // Set SendHistoricalOnInit = true, attach to ONE chart, wait for completion,
@@ -106,7 +111,7 @@ string BuildOpenPayload(ulong posId, ulong ticket)
       posId, symbol, direction,
       volume, price, sl, tp,
       openTimeStr, comment,
-      AccountBalance()
+      AccountInfoDouble(ACCOUNT_BALANCE)
    );
 }
 
@@ -158,7 +163,7 @@ string BuildClosePayload(ulong posId, ulong closeTicket)
       volume, entryPrice, closePrice, sl, tp,
       entryTimeStr, closeTimeStr,
       profit, commission, swap, comment,
-      AccountBalance()
+      AccountInfoDouble(ACCOUNT_BALANCE)
    );
 }
 
