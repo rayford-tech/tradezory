@@ -23,6 +23,23 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags, mt5Webhoo
   const [newAccount, setNewAccount] = useState({ name: "", broker: "", accountNumber: "", type: "LIVE", currency: "USD" });
   const [creatingAccount, setCreatingAccount] = useState(false);
 
+  // Balance editing per account
+  const [editingBalance, setEditingBalance] = useState<Record<string, string>>({});
+  const [savingBalance, setSavingBalance] = useState<string | null>(null);
+
+  async function saveBalance(accountId: string) {
+    const val = parseFloat(editingBalance[accountId]);
+    if (isNaN(val) || val <= 0) return;
+    setSavingBalance(accountId);
+    await fetch(`/api/accounts/${accountId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ balance: val }),
+    });
+    setSavingBalance(null);
+    window.location.reload();
+  }
+
   // Setup tag form
   const [newSetupTag, setNewSetupTag] = useState({ name: "", color: "#6366f1" });
   const [newMistakeTag, setNewMistakeTag] = useState({ name: "", color: "#ef4444" });
@@ -165,18 +182,46 @@ export function SettingsView({ user, accounts, setupTags, mistakeTags, mt5Webhoo
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 space-y-3">
             <h2 className="text-sm font-semibold text-zinc-200">Trading Accounts</h2>
             {accounts.map((acc) => (
-              <div key={acc.id} className="flex items-center justify-between rounded-lg border border-zinc-700 px-4 py-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-zinc-200">{acc.name}</span>
-                    {acc.isDefault && <span className="rounded-full bg-indigo-600/20 border border-indigo-500/30 px-2 py-0.5 text-[10px] text-indigo-400">Default</span>}
-                    <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-400">{acc.type}</span>
+              <div key={acc.id} className="rounded-lg border border-zinc-700 px-4 py-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-zinc-200">{acc.name}</span>
+                      {acc.isDefault && <span className="rounded-full bg-indigo-600/20 border border-indigo-500/30 px-2 py-0.5 text-[10px] text-indigo-400">Default</span>}
+                      <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-400">{acc.type}</span>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-0.5">{acc.broker ?? "—"} · {acc.currency}</p>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-0.5">{acc.broker ?? "—"} · {acc.currency}</p>
+                  <button onClick={() => deleteAccount(acc.id)} className="text-zinc-600 hover:text-red-400 transition-colors">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-                <button onClick={() => deleteAccount(acc.id)} className="text-zinc-600 hover:text-red-400 transition-colors">
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {/* Balance input for % P&L toggle on dashboard */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-zinc-500 w-20 shrink-0">Balance ({acc.currency})</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder={acc.balance != null ? String(Number(acc.balance)) : "e.g. 10000"}
+                    value={editingBalance[acc.id] ?? ""}
+                    onChange={(e) => setEditingBalance((p) => ({ ...p, [acc.id]: e.target.value }))}
+                    onKeyDown={(e) => e.key === "Enter" && saveBalance(acc.id)}
+                    className="w-36 rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-100 focus:border-indigo-500 focus:outline-none"
+                  />
+                  {acc.balance != null && !editingBalance[acc.id] && (
+                    <span className="text-xs text-emerald-500">{Number(acc.balance).toLocaleString()}</span>
+                  )}
+                  {editingBalance[acc.id] && (
+                    <button
+                      onClick={() => saveBalance(acc.id)}
+                      disabled={savingBalance === acc.id}
+                      className="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-60"
+                    >
+                      {savingBalance === acc.id ? "Saving…" : "Save"}
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
